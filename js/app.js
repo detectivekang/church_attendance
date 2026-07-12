@@ -820,7 +820,9 @@ async function renderCategoryOverview() {
     const overviewYear = new Date().getFullYear();
     const overviewServices = generateSundaysForYear(overviewYear);
     const attSnaps = await Promise.all(
-      overviewServices.map((s) => db.collection("attendance").doc(s.id).get()),
+      overviewServices.map((s) =>
+        db.collection("attendance").doc(s.id).get(),
+      ),
     );
     const overviewAttendance = {};
     overviewServices.forEach((s, i) => {
@@ -862,7 +864,8 @@ async function renderCategoryOverview() {
       .filter((m) => isBirthdayInCurrentMonth(m.birthday))
       .sort((a, b) => birthdayDay(a.birthday) - birthdayDay(b.birthday));
     if (bdayList.length === 0) {
-      bdayEl.innerHTML = '<div class="empty">이번 달 생일자가 없습니다.</div>';
+      bdayEl.innerHTML =
+        '<div class="empty">이번 달 생일자가 없습니다.</div>';
     } else {
       bdayEl.innerHTML = `<div class="birthday-list">${bdayList
         .map(
@@ -1736,84 +1739,88 @@ function normalizeBirthdayCell(val) {
   return "";
 }
 
-document.getElementById("excelUploadInput").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      const data = new Uint8Array(evt.target.result);
-      const wb = XLSX.read(data, { type: "array", cellDates: true });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-      excelParsedRows = rows
-        .map((r) => {
-          const name = String(r["이름"] ?? r["name"] ?? r["Name"] ?? "").trim();
-          const birthdayRaw = r["생일"] ?? r["birthday"] ?? r["Birthday"] ?? "";
-          const birthday = normalizeBirthdayCell(birthdayRaw);
-          return { name, birthday };
-        })
-        .filter((r) => r.name);
-
-      const previewEl = document.getElementById("excelUploadPreview");
-      if (excelParsedRows.length === 0) {
-        previewEl.innerHTML =
-          '<div class="modal-none">인식된 데이터가 없습니다. "이름" 열이 있는지 확인해주세요.</div>';
-      } else {
-        previewEl.innerHTML = excelParsedRows
-          .map(
-            (r) =>
-              `<div class="excel-preview-row"><span>${escapeHtml(r.name)}</span><span>${escapeHtml(r.birthday || "-")}</span></div>`,
-          )
-          .join("");
-      }
-      document.getElementById("excelUploadCount").textContent =
-        excelParsedRows.length;
-      document.getElementById("excelUploadPreviewWrap").style.display = "block";
-      document.getElementById("excelUploadSave").disabled =
-        excelParsedRows.length === 0;
-    } catch (err) {
-      alert("엑셀 파일을 읽는 중 오류가 발생했습니다: " + err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-});
-
 document
-  .getElementById("excelUploadSave")
-  .addEventListener("click", async () => {
-    if (!canManageMembers() || excelParsedRows.length === 0) return;
-    const btn = document.getElementById("excelUploadSave");
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "등록 중...";
-    try {
-      const batch = db.batch();
-      excelParsedRows.forEach((r) => {
-        const ref = db.collection("members").doc();
-        batch.set(ref, {
-          name: r.name,
-          birthday: r.birthday || null,
-          groupId: selectedGroupId,
-          createdAt: Date.now(),
-        });
-      });
-      await batch.commit();
-      document.getElementById("excelUploadOverlay").style.display = "none";
-      resetExcelUploadModal();
-      await loadMembers(selectedGroupId);
-      renderMembers();
-      renderAttendList();
-      renderStats();
-      alert("팀원이 일괄 등록되었습니다.");
-    } catch (err) {
-      alert("등록 중 에러가 발생했습니다: " + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
+  .getElementById("excelUploadInput")
+  .addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: "array", cellDates: true });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        excelParsedRows = rows
+          .map((r) => {
+            const name = String(
+              r["이름"] ?? r["name"] ?? r["Name"] ?? "",
+            ).trim();
+            const birthdayRaw =
+              r["생일"] ?? r["birthday"] ?? r["Birthday"] ?? "";
+            const birthday = normalizeBirthdayCell(birthdayRaw);
+            return { name, birthday };
+          })
+          .filter((r) => r.name);
+
+        const previewEl = document.getElementById("excelUploadPreview");
+        if (excelParsedRows.length === 0) {
+          previewEl.innerHTML =
+            '<div class="modal-none">인식된 데이터가 없습니다. "이름" 열이 있는지 확인해주세요.</div>';
+        } else {
+          previewEl.innerHTML = excelParsedRows
+            .map(
+              (r) =>
+                `<div class="excel-preview-row"><span>${escapeHtml(r.name)}</span><span>${escapeHtml(r.birthday || "-")}</span></div>`,
+            )
+            .join("");
+        }
+        document.getElementById("excelUploadCount").textContent =
+          excelParsedRows.length;
+        document.getElementById("excelUploadPreviewWrap").style.display =
+          "block";
+        document.getElementById("excelUploadSave").disabled =
+          excelParsedRows.length === 0;
+      } catch (err) {
+        alert("엑셀 파일을 읽는 중 오류가 발생했습니다: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   });
+
+document.getElementById("excelUploadSave").addEventListener("click", async () => {
+  if (!canManageMembers() || excelParsedRows.length === 0) return;
+  const btn = document.getElementById("excelUploadSave");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "등록 중...";
+  try {
+    const batch = db.batch();
+    excelParsedRows.forEach((r) => {
+      const ref = db.collection("members").doc();
+      batch.set(ref, {
+        name: r.name,
+        birthday: r.birthday || null,
+        groupId: selectedGroupId,
+        createdAt: Date.now(),
+      });
+    });
+    await batch.commit();
+    document.getElementById("excelUploadOverlay").style.display = "none";
+    resetExcelUploadModal();
+    await loadMembers(selectedGroupId);
+    renderMembers();
+    renderAttendList();
+    renderStats();
+    alert("팀원이 일괄 등록되었습니다.");
+  } catch (err) {
+    alert("등록 중 에러가 발생했습니다: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
 
 /* 통계 - 출석부 엑셀 다운로드 (팀원 x 예배일 매트릭스) */
 document
@@ -1835,7 +1842,11 @@ document
       attRows.push(row);
     });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(attRows), "출석");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(attRows),
+      "출석",
+    );
 
     if (showDonation) {
       const donRows = [attHeader];
@@ -1871,7 +1882,10 @@ document
       );
     }
 
-    XLSX.writeFile(wb, `${currentGroupData.name}_출석부_${selectedYear}.xlsx`);
+    XLSX.writeFile(
+      wb,
+      `${currentGroupData.name}_출석부_${selectedYear}.xlsx`,
+    );
   });
 
 /* =========================================================

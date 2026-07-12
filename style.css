@@ -971,3 +971,94 @@ button.btn:disabled {
 #yearSelect {
   flex-shrink: 0;
 }
+
+/* =========================================================
+   [v2 추가] 그룹/카테고리 인라인 수정, 팀장 출석 배지,
+   전체 그룹 상세 통계 테이블, 출석부 엑셀 업로드
+   ========================================================= */
+
+/* 그룹/카테고리 리스트 인라인 수정 폼 (팀원 수정 폼과 동일 톤) */
+.inline-edit-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1;
+}
+.inline-edit-form input {
+  min-width: 140px;
+  flex: 1;
+}
+
+/* 팀장 출석 배지 */
+.leader-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--stamp-red-dark);
+  background: rgba(184, 147, 95, 0.22);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* 전체 그룹 상세 통계 토글 버튼 */
+.detail-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.detail-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--stamp-red);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 2px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 전체 그룹 상세 통계 테이블 */
+.detail-stats-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.detail-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 480px;
+}
+.detail-stats-table th,
+.detail-stats-table td {
+  padding: 8px 10px;
+  border-bottom: 1px dotted var(--paper-line);
+  text-align: left;
+  white-space: nowrap;
+}
+.detail-stats-table th {
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--paper-line);
+}
+.detail-stats-table tr.detail-row {
+  cursor: pointer;
+}
+.detail-stats-table tr.detail-row:hover td {
+  background: rgba(184, 147, 95, 0.08);
+}
+.detail-stats-table td.num {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 700;
+  color: var(--cover-navy);
+}
+
+/* 엑셀 업로드/다운로드 버튼 행 간격 (출석부용) */
+.excel-btns.stats-excel-btns {
+  margin: -4px 0 16px;
+}

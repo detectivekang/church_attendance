@@ -97,7 +97,8 @@
           </h2>
           <p class="section-desc">
             카테고리를 등록한 뒤, 목록의 '운영자 지정' 버튼으로 가입된 사용자
-            중에서 운영자를 선택하세요.
+            중에서 운영자를 선택하세요. 이름(<b>수정</b>) 버튼으로 이름을 바꿀
+            수 있습니다.
           </p>
           <div class="add-form">
             <input
@@ -117,7 +118,8 @@
           </h2>
           <p class="section-desc">
             그룹을 등록한 뒤, 목록의 '팀장 지정' 버튼으로 가입된 사용자 중에서
-            팀장(여러 명 가능)을 선택하세요.
+            팀장(여러 명 가능)을 선택하세요. '수정' 버튼으로 그룹 이름을 바꿀
+            수 있습니다.
           </p>
 
           <div class="overview-box" id="categoryOverviewBox">
@@ -127,6 +129,16 @@
               🎂 이번 달 생일자
             </div>
             <div id="categoryBirthdayList"></div>
+            <div class="detail-toggle-row">
+              <button class="detail-toggle-btn" id="categoryDetailToggle">
+                ▾ 전체 그룹 상세 출석/통계 보기
+              </button>
+            </div>
+            <div
+              class="detail-stats-wrap"
+              id="categoryDetailWrap"
+              style="display: none"
+            ></div>
           </div>
 
           <div class="add-form" id="addGroupForm">
@@ -181,6 +193,10 @@
                   ><input type="checkbox" id="trackBibleToggle" /> 성경 읽은
                   권수 관리</label
                 >
+                <label
+                  ><input type="checkbox" id="trackLeaderToggle" /> 팀장 출석
+                  관리</label
+                >
               </div>
               <div class="member-form" id="memberForm">
                 <input type="text" id="newMemberName" placeholder="이름" />
@@ -206,9 +222,12 @@
               <p class="section-desc">
                 팀원별 출석률과 주차별 출석 인원, 개근·정근 현황을 확인하세요.
               </p>
-              <div class="row" style="margin-bottom: 10px">
+              <div class="excel-btns stats-excel-btns" id="statsExcelBtns">
                 <button class="btn ghost small" id="downloadStatsExcelBtn">
                   📥 출석부 엑셀 다운로드
+                </button>
+                <button class="btn ghost small" id="openAttendanceExcelUploadBtn">
+                  📤 출석부 엑셀 업로드
                 </button>
               </div>
               <div class="summary-cards" id="summaryCards"></div>
@@ -305,11 +324,54 @@
       </div>
     </div>
 
+    <!-- 엑셀 업로드 모달 (출석부 일괄 반영) -->
+    <div
+      class="modal-overlay"
+      id="attendanceUploadOverlay"
+      style="display: none"
+    >
+      <div class="modal-card excel-modal-card">
+        <div class="modal-title">엑셀로 출석부 일괄 반영</div>
+        <div class="modal-sub">
+          '📥 출석부 엑셀 다운로드'로 받은 파일 형식 그대로 올려주세요.
+          '출석' 시트의 O 표시, '헌금'·'성경' 시트의 숫자가 이름·날짜 기준으로
+          서버에 반영됩니다. 명단에 없는 이름이나 이번에 표시되지 않은
+          날짜는 무시됩니다.
+        </div>
+        <input type="file" id="attendanceUploadInput" accept=".xlsx,.xls" />
+        <div id="attendanceUploadPreviewWrap" style="display: none">
+          <div class="modal-sub" style="margin-top: 10px" id="attendanceUploadSummary"></div>
+          <div class="modal-list" id="attendanceUploadPreview"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="attendanceUploadCancel">취소</button>
+          <button class="btn" id="attendanceUploadSave" disabled>
+            일괄 반영
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Firebase SDK (compat v10 버그 무한 대기 프리징 대책 롱폴링 완벽 적용 상태유지) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="app.js"></script>
+
+    <!-- 앱 스크립트 (기능별로 분리됨, 순서 중요) -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/user-picker.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/categories.js"></script>
+    <script src="js/groups.js"></script>
+    <script src="js/members.js"></script>
+    <script src="js/group-detail.js"></script>
+    <script src="js/attendance.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/excel.js"></script>
+    <script src="js/tabs.js"></script>
   </body>
 </html>
