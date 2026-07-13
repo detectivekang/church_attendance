@@ -117,15 +117,39 @@ document.getElementById("excelUploadSave").addEventListener("click", async () =>
   btn.disabled = true;
   btn.textContent = "등록 중...";
   try {
+    /* [수정] 이름+생일을 키로 이 그룹의 기존 팀원과 매칭해서
+       있으면 정보만 갱신(merge)하고, 없으면 신규 등록함 (중복 insert 방지) */
+    const existingSnap = await db
+      .collection("members")
+      .where("groupId", "==", selectedGroupId)
+      .get();
+    const existingMap = {};
+    existingSnap.docs.forEach((d) => {
+      const data = d.data();
+      existingMap[memberMergeKey(data.name, data.birthday)] = d.id;
+    });
+
     const batch = db.batch();
+    let insertCount = 0;
+    let updateCount = 0;
     excelParsedRows.forEach((r) => {
-      const ref = db.collection("members").doc();
-      batch.set(ref, {
-        name: r.name,
-        birthday: r.birthday || null,
-        groupId: selectedGroupId,
-        createdAt: Date.now(),
-      });
+      const existingId = existingMap[memberMergeKey(r.name, r.birthday)];
+      if (existingId) {
+        batch.update(db.collection("members").doc(existingId), {
+          name: r.name,
+          birthday: r.birthday || null,
+        });
+        updateCount++;
+      } else {
+        const ref = db.collection("members").doc();
+        batch.set(ref, {
+          name: r.name,
+          birthday: r.birthday || null,
+          groupId: selectedGroupId,
+          createdAt: Date.now(),
+        });
+        insertCount++;
+      }
     });
     await batch.commit();
     document.getElementById("excelUploadOverlay").style.display = "none";
@@ -134,7 +158,9 @@ document.getElementById("excelUploadSave").addEventListener("click", async () =>
     renderMembers();
     renderAttendList();
     renderStats();
-    alert("팀원이 일괄 등록되었습니다.");
+    alert(
+      `팀원 반영이 완료되었습니다. (신규 ${insertCount}명 · 기존 갱신 ${updateCount}명)`,
+    );
   } catch (err) {
     alert("등록 중 에러가 발생했습니다: " + err.message);
   } finally {

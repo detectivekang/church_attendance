@@ -419,17 +419,12 @@ async function assignLeaders(groupId) {
   const added = after.filter((e) => !before.includes(e));
 
   for (const email of removed) {
-    await db
-      .collection("roles")
-      .doc(email)
-      .delete()
-      .catch(() => {});
+    await removeRoleContext(email, { role: "leader", groupId: groupId }).catch(
+      () => {},
+    );
   }
   for (const email of added) {
-    await db
-      .collection("roles")
-      .doc(email)
-      .set({ role: "leader", groupId: groupId });
+    await addRoleContext(email, { role: "leader", groupId: groupId });
   }
   await db.collection("groups").doc(groupId).update({ leaderEmails: after });
   await loadGroups(selectedCategoryId);
@@ -448,11 +443,10 @@ async function deleteGroup(groupId) {
   if (g) {
     const leaderEmails = normalizeLeaderEmails(g);
     for (const email of leaderEmails) {
-      await db
-        .collection("roles")
-        .doc(email)
-        .delete()
-        .catch(() => {});
+      await removeRoleContext(email, {
+        role: "leader",
+        groupId: groupId,
+      }).catch(() => {});
     }
   }
   await db.collection("groups").doc(groupId).delete();

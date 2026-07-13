@@ -146,3 +146,96 @@ async function initRoleView() {
     navigateTo({ level: "pending" }, true);
   }
 }
+
+/* =========================================================
+   [신규] 역할 선택 화면 (한 사람이 여러 역할을 가진 경우 로그인 직후 노출)
+   ========================================================= */
+function renderRolePicker() {
+  const list = document.getElementById("rolePickerList");
+  list.innerHTML = "";
+  userContexts.forEach((ctx, i) => {
+    const card = document.createElement("div");
+    card.className = "list-card role-picker-card";
+    card.innerHTML = `
+      <div class="list-card-main">
+        <div class="list-card-title">${escapeHtml(ctx.scopeName || "")}</div>
+        <div class="list-card-sub">${escapeHtml(roleName(ctx.role))}로 입장</div>
+      </div>
+    `;
+    card.addEventListener("click", async () => {
+      activeContextIndex = i;
+      applyActiveContext();
+      await enterAppAfterRoleReady();
+    });
+    list.appendChild(card);
+  });
+}
+
+/* =========================================================
+   [신규] 화면 상단 "역할 전환" 스위처
+   - 역할이 1개뿐이면 기존처럼 뱃지만 보이고 스위처는 숨김
+   - 2개 이상이면 뱃지 옆에 전환 버튼이 나타나고, 클릭 시 드롭다운으로
+   다른 역할 컨텍스트를 골라 화면 갈아타기 가능(로그아웃 불필요)
+   ========================================================= */
+function renderRoleSwitcher() {
+  const wrap = document.getElementById("roleSwitcher");
+  if (!wrap) return;
+  if (currentRole === "admin" || userContexts.length <= 1) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "inline-flex";
+  const ctx = userContexts[activeContextIndex];
+  document.getElementById("roleSwitcherCurrent").textContent =
+    (ctx && ctx.label) || roleName(currentRole);
+
+  const menu = document.getElementById("roleSwitcherMenu");
+  menu.innerHTML = "";
+  userContexts.forEach((c, i) => {
+    const item = document.createElement("div");
+    item.className =
+      "role-switcher-item" + (i === activeContextIndex ? " active" : "");
+    item.textContent = c.label || roleName(c.role);
+    item.addEventListener("click", () => switchContext(i));
+    menu.appendChild(item);
+  });
+}
+
+document.getElementById("roleSwitcherBtn").addEventListener("click", () => {
+  const btn = document.getElementById("roleSwitcherBtn");
+  const menu = document.getElementById("roleSwitcherMenu");
+
+  /* [수정] .book 컨테이너가 overflow:hidden이라 absolute 드롭다운이 잘리는 문제 -
+     메뉴를 body 바로 아래로 옮기고 fixed 좌표로 버튼 위치에 맞춰 붙임 */
+  if (menu.parentElement !== document.body) {
+    document.body.appendChild(menu);
+  }
+
+  const opening = menu.style.display !== "block";
+  if (opening) {
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = rect.bottom + 6 + "px";
+    menu.style.left = rect.left + "px";
+  }
+  menu.style.display = opening ? "block" : "none";
+});
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("roleSwitcher");
+  const menu = document.getElementById("roleSwitcherMenu");
+  if (wrap && !wrap.contains(e.target) && !menu.contains(e.target)) {
+    menu.style.display = "none";
+  }
+});
+window.addEventListener("scroll", () => {
+  document.getElementById("roleSwitcherMenu").style.display = "none";
+});
+
+async function switchContext(i) {
+  document.getElementById("roleSwitcherMenu").style.display = "none";
+  if (i === activeContextIndex) return;
+  activeContextIndex = i;
+  applyActiveContext();
+  document.getElementById("roleLabel").textContent = roleName(currentRole);
+  renderRoleSwitcher();
+  await initRoleView();
+}

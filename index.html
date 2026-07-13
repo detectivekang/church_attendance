@@ -71,6 +71,17 @@
         <div class="cover-date" id="todayLabel"></div>
         <div class="user-bar">
           <span class="role-badge" id="roleLabel"></span>
+          <!-- [신규] 다중 역할 보유 시에만 보이는 역할 전환 스위처 -->
+          <span class="role-switcher" id="roleSwitcher" style="display: none">
+            <button class="btn ghost" id="roleSwitcherBtn">
+              <span id="roleSwitcherCurrent"></span> ▾
+            </button>
+            <div
+              class="role-switcher-menu"
+              id="roleSwitcherMenu"
+              style="display: none"
+            ></div>
+          </span>
           <span id="userEmailLabel"></span>
           <button class="btn ghost" id="logoutBtn">로그아웃</button>
         </div>
@@ -79,6 +90,14 @@
       <div class="breadcrumb" id="breadcrumb"></div>
 
       <div class="page">
+        <!-- [신규] 다중 역할 보유 시 로그인 직후 노출되는 역할 선택 화면 -->
+        <div class="mainview" id="main-rolepicker">
+          <div class="role-picker-box">
+            <div class="big">어떤 역할로 들어갈까요?</div>
+            <div class="role-picker-list" id="rolePickerList"></div>
+          </div>
+        </div>
+
         <!-- 권한 대기 화면 -->
         <div class="mainview" id="main-pending">
           <div class="pending-box">
@@ -194,7 +213,7 @@
                   ><input type="checkbox" id="trackBibleToggle" /> 성경 읽은
                   권수 관리</label
                 >
-                <label
+                <label style="display: none"
                   ><input type="checkbox" id="trackLeaderToggle" /> 팀장 출석
                   관리</label
                 >

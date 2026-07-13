@@ -5,6 +5,13 @@ let currentUser = null;
 let currentRole = null;
 let roleScope = {};
 
+/* [신규] 다중 역할 지원 - 한 사람이 여러 팀의 팀장이거나
+   팀장+운영자를 동시에 겸할 수 있으므로, roles 문서의 단일 role 대신
+   "역할 컨텍스트" 배열을 들고 있다가 그중 하나를 활성 컨텍스트로 사용함.
+   컨텍스트 형태: { role: "leader"|"operator", groupId?, categoryId?, label? } */
+let userContexts = [];
+let activeContextIndex = 0;
+
 let categories = [];
 let categoriesCache = {};
 let groups = [];
