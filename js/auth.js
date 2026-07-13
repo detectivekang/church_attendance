@@ -18,14 +18,25 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("signupBtn").addEventListener("click", async () => {
-  const name = document.getElementById("signupName").value.trim();
-  const email = document.getElementById("loginEmail").value.trim();
-  const pw = document.getElementById("loginPassword").value;
+  const nameInput = document.getElementById("signupName");
   const errEl = document.getElementById("loginError");
   errEl.textContent = "";
+
+  // [신규] 이름 입력칸은 평소엔 숨겨두고, '회원가입' 버튼을 처음 누를 때만
+  // 나타나도록 함. 이름을 입력하고 한 번 더 눌러야 실제 가입이 진행됨.
+  if (nameInput.style.display === "none") {
+    nameInput.style.display = "block";
+    nameInput.focus();
+    document.getElementById("signupBtn").textContent = "가입 완료";
+    return;
+  }
+
+  const name = nameInput.value.trim();
+  const email = document.getElementById("loginEmail").value.trim();
+  const pw = document.getElementById("loginPassword").value;
   if (!name) {
     errEl.textContent = "이름을 입력하세요.";
-    document.getElementById("signupName").focus();
+    nameInput.focus();
     return;
   }
   if (!email || !pw) {

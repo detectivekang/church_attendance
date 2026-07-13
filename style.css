@@ -815,6 +815,7 @@ button.btn:disabled {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto; /* [수정] 헌금/성경 칸 유무와 상관없이 항상 행의 맨 오른쪽에 고정 */
 }
 .mini-toggle {
   width: auto;

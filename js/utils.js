@@ -75,8 +75,10 @@ function generateSundaysForYear(year) {
   }
   let endDate;
   if (isCurrentYear) {
+    // [수정] 아직 지나지 않은 다음 주일이 미리 보이지 않도록,
+    // 오늘을 넘지 않는 가장 최근 주일(오늘이 주일이면 오늘)까지만 생성
     endDate = new Date();
-    endDate.setDate(today.getDate() + ((7 - today.getDay()) % 7));
+    endDate.setDate(today.getDate() - today.getDay());
   } else {
     endDate = new Date(`${year}-12-31`);
   }
