@@ -969,7 +969,7 @@ button.btn:disabled {
 }
 
 /* 연도 선택 */
-#yearSelect {
+.yearSelect {
   flex-shrink: 0;
 }
 

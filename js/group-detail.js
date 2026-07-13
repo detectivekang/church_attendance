@@ -93,27 +93,38 @@ async function enterGroup(groupId, opts = {}) {
    출석체크 연도 선택
    ========================================================= */
 function renderYearSelect() {
-  const sel = document.getElementById("yearSelect");
-  if (!sel) return;
-  sel.innerHTML = "";
-  getYearOptions().forEach((y) => {
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.textContent = y + "년";
-    if (y === selectedYear) opt.selected = true;
-    sel.appendChild(opt);
+  const selects = document.querySelectorAll(".yearSelect"); // 클래스로 모든 요소 선택
+  selects.forEach((sel) => {
+    sel.innerHTML = "";
+    getYearOptions().forEach((y) => {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y + "년";
+      if (y == selectedYear) opt.selected = true;
+      sel.appendChild(opt);
+    });
   });
 }
 
-document.getElementById("yearSelect").addEventListener("change", async (e) => {
-  selectedYear = Number(e.target.value);
-  services = generateSundaysForYear(selectedYear);
-  await loadAttendanceForServices();
-  const sorted = [...services].sort((a, b) => b.date.localeCompare(a.date));
-  currentServiceId = sorted.length ? sorted[0].id : null;
-  renderServiceSelect();
-  renderAttendList();
-  renderStats();
+document.querySelectorAll(".yearSelect").forEach((element) => {
+  element.addEventListener("change", async (e) => {
+    const selectedYear = Number(e.target.value);
+
+    // 1. 모든 .yearSelect 요소의 값을 동일하게 맞춤
+    document.querySelectorAll(".yearSelect").forEach((select) => {
+      select.value = selectedYear;
+    });
+
+    services = generateSundaysForYear(selectedYear);
+    await loadAttendanceForServices();
+
+    const sorted = [...services].sort((a, b) => b.date.localeCompare(a.date));
+    currentServiceId = sorted.length ? sorted[0].id : null;
+
+    renderServiceSelect();
+    renderAttendList();
+    renderStats();
+  });
 });
 
 document
