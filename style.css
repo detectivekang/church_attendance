@@ -1063,3 +1063,11 @@ button.btn:disabled {
 .excel-btns.stats-excel-btns {
   margin: -4px 0 16px;
 }
+
+/* 엑셀업로드 미리보기 */
+#excelUploadPreview{
+  max-height: 400px; /* 원하는 높이 */
+  overflow-y: auto;
+  border: 1px solid var(--paper-line);
+  padding: 5px;
+}
