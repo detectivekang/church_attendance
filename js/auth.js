@@ -320,8 +320,12 @@ async function removeRoleContext(email, ctx) {
 async function loadChurchName() {
   try {
     const doc = await db.collection("settings").doc("church").get();
-    const name =
-      doc.exists && doc.data().name ? doc.data().name : "서산 성결 교회";
+    const raw =
+      doc.exists && doc.data().name ? doc.data().name : "서산성결교회";
+    /* [수정] Firestore에 예전에 띄어쓰기 있는 값("서산 성결 교회")이 저장돼 있어도
+       화면엔 항상 붙여서("서산성결교회") 보이도록 공백을 제거함.
+       그래서 로그인 직후 값이 바뀌며 간격이 벌어지는 현상이 다시는 생기지 않음 */
+    const name = raw.replace(/\s+/g, "");
     document.getElementById("churchName").value = name;
   } catch (e) {}
   document.getElementById("churchName").disabled = currentRole !== "admin";
