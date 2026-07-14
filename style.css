@@ -379,6 +379,17 @@ button.btn:disabled {
   font-size: 15px;
   font-weight: 500;
 }
+/* [신규] 출석체크/팀원명부 이름 앞 순번 표시 */
+.roster-num {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.roster-name-line {
+  display: flex;
+  align-items: center;
+}
 .stamp-btn {
   width: 80px;
   height: 44px;

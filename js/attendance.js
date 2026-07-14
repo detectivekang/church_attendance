@@ -61,12 +61,13 @@ function renderAttendList() {
   const showDonation = !!(currentGroupData && currentGroupData.trackDonation);
   const showBible = !!(currentGroupData && currentGroupData.trackBible);
 
-  members.forEach((m) => {
+  members.forEach((m, idx) => {
     const rec = getRecord(currentServiceId, m.id);
     const row = document.createElement("div");
     row.className = "roster-row";
     row.innerHTML = `
       <div>
+        <span class="roster-num">${idx + 1}.</span>
         <span class="roster-name">${escapeHtml(m.name)}${m.isLeader ? '<span class="leader-tag">팀장</span>' : ""}</span>
       </div>
       <div class="roster-extra">

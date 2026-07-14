@@ -49,13 +49,14 @@ function renderMembers() {
     return;
   }
   const editable = canManageMembers();
-  members.forEach((m) => {
+  members.forEach((m, idx) => {
     const item = document.createElement("div");
     item.className = "member-item";
 
     if (editingMemberId === m.id && !m.isLeader) {
       item.innerHTML = `
         <div class="member-edit-form">
+          <span class="roster-num">${idx + 1}.</span>
           <input type="text" class="edit-name" value="${escapeHtml(m.name)}" placeholder="이름" />
           <input type="date" class="edit-birthday" value="${m.birthday || ""}" />
           <button class="btn small edit-save" data-id="${m.id}">저장</button>
@@ -69,7 +70,10 @@ function renderMembers() {
     item.innerHTML = `
       <div class="member-item-left">
         <div class="roster-name-block">
-          <span class="roster-name">${escapeHtml(m.name)}${m.isLeader ? '<span class="leader-tag">팀장</span>' : ""}</span>
+          <div class="roster-name-line">
+            <span class="roster-num">${idx + 1}.</span>
+            <span class="roster-name">${escapeHtml(m.name)}${m.isLeader ? '<span class="leader-tag">팀장</span>' : ""}</span>
+          </div>
           ${m.birthday ? `<span class="roster-birthday">🎂 ${escapeHtml(fmtBirthday(m.birthday))}</span>` : ""}
         </div>
       </div>
