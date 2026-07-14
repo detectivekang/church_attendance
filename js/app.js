@@ -1218,7 +1218,7 @@ function renderAttendList() {
           showBible
             ? `<div class="bible-input-wrap">성경
               <input type="number" min="0" max="66" class="bible-input" data-id="${m.id}" value="${rec.bible}" ${editable ? "" : "disabled"} />
-              권</div>`
+              장</div>`
             : ""
         }
         <button class="stamp-btn ${rec.present ? "present" : ""} ${editable ? "" : "readonly"}" data-id="${m.id}">${rec.present ? "출 석" : "출석 체크"}</button>
@@ -1464,7 +1464,7 @@ function renderStats() {
     });
     const bibleAvg =
       totalMembers > 0 ? Math.round((bibleSum / totalMembers) * 10) / 10 : 0;
-    extraCards += `<div class="summary-card"><div class="num">${bibleAvg}</div><div class="lbl">1인 평균 성경 진도(권)</div></div>`;
+    extraCards += `<div class="summary-card"><div class="num">${bibleAvg}</div><div class="lbl">1인 평균 성경 진도(장)</div></div>`;
   }
 
   const cards = document.getElementById("summaryCards");
@@ -1572,7 +1572,7 @@ function renderStats() {
     if (showDonation || showBible) {
       extra = `<div class="stat-extra">
         ${showDonation ? `<span>헌금 <b>${donation.toLocaleString()}</b>원</span>` : ""}
-        ${showBible ? `<span>성경 <b>${bibleMax}</b>권</span>` : ""}
+        ${showBible ? `<span>성경 <b>${bibleMax}</b>장</span>` : ""}
       </div>`;
     }
     row.innerHTML = `

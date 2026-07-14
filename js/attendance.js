@@ -82,7 +82,7 @@ function renderAttendList() {
           showBible
             ? `<div class="bible-input-wrap">성경
               <input type="number" min="0" max="66" class="bible-input" data-id="${m.id}" value="${rec.bible}" ${editable ? "" : "disabled"} />
-              권</div>`
+              장</div>`
             : ""
         }
         <button class="stamp-btn ${rec.present ? "present" : ""} ${editable ? "" : "readonly"}" data-id="${m.id}">${rec.present ? "출 석" : "출석 체크"}</button>

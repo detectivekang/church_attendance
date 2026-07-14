@@ -47,7 +47,7 @@ function renderStats() {
     });
     const bibleAvg =
       totalMembers > 0 ? Math.round((bibleSum / totalMembers) * 10) / 10 : 0;
-    extraCards += `<div class="summary-card"><div class="num">${bibleAvg}</div><div class="lbl">1인 평균 성경 진도(권)</div></div>`;
+    extraCards += `<div class="summary-card"><div class="num">${bibleAvg}</div><div class="lbl">1인 평균 성경 진도(장)</div></div>`;
   }
 
   const cards = document.getElementById("summaryCards");
@@ -157,7 +157,7 @@ function renderStats() {
     if (showDonation || showBible) {
       extra = `<div class="stat-extra">
         ${showDonation ? `<span>헌금 <b>${donation.toLocaleString()}</b>원</span>` : ""}
-        ${showBible ? `<span>성경 <b>${bibleMax}</b>권</span>` : ""}
+        ${showBible ? `<span>성경 <b>${bibleMax}</b>장</span>` : ""}
       </div>`;
     }
     row.innerHTML = `

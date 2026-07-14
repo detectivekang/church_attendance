@@ -326,7 +326,7 @@ function renderCategoryDetailTable() {
           <th>최근 예배 출석</th>
           <th>연간 평균 출석률</th>
           ${anyDonation ? "<th>누적 헌금</th>" : ""}
-          ${anyBible ? "<th>1인 평균 성경(권)</th>" : ""}
+          ${anyBible ? "<th>1인 평균 성경(장)</th>" : ""}
         </tr>
       </thead>
       <tbody>
