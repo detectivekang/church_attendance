@@ -121,11 +121,15 @@ async function ensureUserDoc(user, name) {
         name: name || "",
         createdAt: Date.now(),
       });
+      return name || "";
     } else if (name && !doc.data().name) {
       await ref.update({ name });
+      return name;
     }
+    return doc.data().name || "";
   } catch (e) {
-    /* 유저 정보 저장 실패는 앱 진행에 영향 없도록 무시 */
+    /* 유저 정보 저장/조회 실패는 앱 진행에 영향 없도록 무시 (헤더엔 이메일로 대체 표시) */
+    return "";
   }
 }
 
@@ -135,7 +139,9 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appScreen").style.display = "block";
     document.getElementById("userEmailLabel").textContent = user.email;
-    await ensureUserDoc(user);
+    const userName = await ensureUserDoc(user);
+    document.getElementById("userEmailLabel").textContent =
+      userName || user.email;
     await resolveRole(user);
 
     /* [신규] 역할 컨텍스트가 1개 이하면(기존 사용자와 동일) 바로 진입,
