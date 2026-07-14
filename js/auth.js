@@ -174,6 +174,10 @@ async function enterAppAfterRoleReady() {
   await loadChurchName();
   document.getElementById("todayLabel").textContent =
     fmtDate(todayStr()) + " 기준";
+  /* [수정] 운영자/팀장 이름 표시(userLabel)가 usersList를 참조하는데,
+     기존엔 운영자 지정 모달을 열어야만 채워져서 카테고리·그룹 목록에는
+     이메일만 보였음 - 로그인 직후 미리 로드해둠 */
+  await loadUsers();
   renderRoleSwitcher();
   await initRoleView();
 }
