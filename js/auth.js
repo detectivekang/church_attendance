@@ -59,6 +59,46 @@ document
   .getElementById("logoutBtn")
   .addEventListener("click", () => auth.signOut());
 
+/* =========================================================
+   [신규] 비밀번호를 잊었을 때 - 가입 이메일로 재설정 링크 발송
+   ========================================================= */
+document.getElementById("forgotPwLink").addEventListener("click", () => {
+  const box = document.getElementById("forgotPwBox");
+  const opening = box.style.display === "none";
+  box.style.display = opening ? "block" : "none";
+  document.getElementById("forgotPwMsg").textContent = "";
+  if (opening) {
+    const emailInput = document.getElementById("forgotPwEmail");
+    emailInput.value = document.getElementById("loginEmail").value.trim();
+    emailInput.focus();
+  }
+});
+
+document
+  .getElementById("forgotPwSendBtn")
+  .addEventListener("click", async () => {
+    const btn = document.getElementById("forgotPwSendBtn");
+    const msgEl = document.getElementById("forgotPwMsg");
+    const email = document.getElementById("forgotPwEmail").value.trim();
+    if (!email) {
+      msgEl.textContent = "이메일을 입력하세요.";
+      return;
+    }
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "전송 중...";
+    try {
+      await auth.sendPasswordResetEmail(email);
+      msgEl.textContent =
+        "재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인해주세요.";
+    } catch (e) {
+      msgEl.textContent = translateAuthError(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
 function translateAuthError(e) {
   const map = {
     "auth/invalid-email": "이메일 형식이 올바르지 않습니다.",

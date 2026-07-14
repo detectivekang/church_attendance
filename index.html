@@ -44,6 +44,24 @@
         <div class="login-error" id="loginError"></div>
         <button class="btn" id="loginBtn">로그인</button>
         <button class="btn ghost" id="signupBtn">회원가입</button>
+
+        <!-- [신규] 비밀번호를 잊었을 때 - 가입 이메일로 재설정 링크 발송 -->
+        <div class="forgot-pw-wrap">
+          <span class="link-text" id="forgotPwLink">비밀번호를 잊으셨나요?</span>
+        </div>
+        <div class="forgot-pw-box" id="forgotPwBox" style="display: none">
+          <input
+            type="email"
+            id="forgotPwEmail"
+            placeholder="가입한 이메일"
+            autocomplete="username"
+          />
+          <button class="btn ghost small" id="forgotPwSendBtn">
+            재설정 메일 보내기
+          </button>
+          <div class="forgot-pw-msg" id="forgotPwMsg"></div>
+        </div>
+
         <p class="login-hint">
           회원가입 시 이름을 입력하면 관리자가 운영자·팀장을 지정할 때<br />
           목록에서 이름으로 바로 선택할 수 있습니다.<br />
