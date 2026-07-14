@@ -82,13 +82,7 @@ body {
   font-family: "Noto Serif KR", serif;
   font-weight: 900;
   font-size: 32px;
-  /* 글자 간격 고정 */
-  letter-spacing: normal;
- /* 폰트가 글자를 자동으로 변형하는 기능 끄기 */
-  font-variant-ligatures: none;
-  font-feature-settings: "liga" 0;
-
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
   background: transparent;
   border: none;
   color: #f7efda;
