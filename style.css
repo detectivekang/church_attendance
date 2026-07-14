@@ -853,6 +853,62 @@ button.btn:disabled {
   font-size: 12px;
 }
 
+/* [신규] 공지사항 관리(관리자) */
+.notice-admin-btn {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.notice-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.notice-form textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+.notice-popup-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.notice-card-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* [신규] 로그인 후 노출되는 공지사항 팝업 */
+.notice-popup-overlay {
+  z-index: 1500;
+}
+.notice-popup-card {
+  max-width: 340px;
+}
+.notice-popup-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin-bottom: 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.notice-popup-actions {
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* 팀 관리 - 헌금/성경 추적 설정 */
 .track-settings {
   display: flex;

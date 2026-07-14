@@ -33,3 +33,6 @@ let editingCategoryId = null;
 /* 그룹 관리 화면의 "전체 그룹 상세 통계" 캐시 (요약/상세 테이블에서 공유) */
 let categoryDetailData = [];
 let categoryDetailOpen = false;
+
+/* [신규] 공지사항 관리 화면용 캐시 (관리자 모달에서만 사용) */
+let notices = [];

@@ -132,6 +132,12 @@
         <div class="mainview" id="main-categories">
           <h2 class="section-title">
             <span class="idx">01</span> 카테고리 관리
+            <button
+              class="btn ghost small notice-admin-btn"
+              id="openNoticeAdminBtn"
+            >
+              공지사항 관리
+            </button>
           </h2>
           <p class="section-desc">
             카테고리를 등록한 뒤, 목록의 '운영자 지정' 버튼으로 가입된 사용자
@@ -398,6 +404,48 @@
       </div>
     </div>
 
+    <!-- [신규] 공지사항 관리 모달 (관리자 전용) -->
+    <div class="modal-overlay" id="noticeAdminOverlay" style="display: none">
+      <div class="modal-card">
+        <div class="modal-title">공지사항 관리</div>
+        <div class="modal-sub">
+          내용을 입력하고 '팝업으로 보여주기'를 켜면, 다음 로그인부터
+          사용자들에게 팝업으로 노출됩니다.
+        </div>
+        <div class="notice-form">
+          <textarea
+            id="newNoticeContent"
+            rows="4"
+            placeholder="공지 내용을 입력하세요"
+          ></textarea>
+          <label class="notice-popup-check">
+            <input type="checkbox" id="newNoticePopup" checked />
+            팝업으로 보여주기
+          </label>
+          <button class="btn" id="addNoticeBtn">등록</button>
+        </div>
+        <div class="modal-list" id="noticeAdminList"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="noticeAdminClose">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- [신규] 로그인 후 노출되는 공지사항 팝업 -->
+    <div class="modal-overlay notice-popup-overlay" id="noticePopupOverlay" style="display: none">
+      <div class="modal-card notice-popup-card">
+        <div class="modal-title">📢 공지사항</div>
+        <div class="notice-popup-content" id="noticePopupContent"></div>
+        <div class="modal-actions notice-popup-actions">
+          <label class="notice-popup-check">
+            <input type="checkbox" id="noticePopupHideToday" />
+            오늘 하루 안 보기
+          </label>
+          <button class="btn" id="noticePopupCloseBtn">닫기</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Firebase SDK (compat v10 버그 무한 대기 프리징 대책 롱폴링 완벽 적용 상태유지) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -410,6 +458,7 @@
     <script src="js/utils.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/user-picker.js"></script>
+    <script src="js/notices.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/categories.js"></script>
     <script src="js/groups.js"></script>

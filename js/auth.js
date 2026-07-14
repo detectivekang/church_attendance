@@ -180,6 +180,8 @@ async function enterAppAfterRoleReady() {
   await loadUsers();
   renderRoleSwitcher();
   await initRoleView();
+  /* [신규] 로그인 직후 팝업 공지사항 확인 (오늘 하루 안 보기 처리된 건 제외) */
+  checkNoticePopups();
 }
 
 /* =========================================================
