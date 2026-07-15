@@ -17,43 +17,157 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("signupBtn").addEventListener("click", async () => {
-  const nameInput = document.getElementById("signupName");
-  const errEl = document.getElementById("loginError");
-  errEl.textContent = "";
-
-  // [신규] 이름 입력칸은 평소엔 숨겨두고, '회원가입' 버튼을 처음 누를 때만
-  // 나타나도록 함. 이름을 입력하고 한 번 더 눌러야 실제 가입이 진행됨.
-  if (nameInput.style.display === "none") {
-    nameInput.style.display = "block";
-    nameInput.focus();
-    document.getElementById("signupBtn").textContent = "가입 완료";
-    return;
-  }
-
-  const name = nameInput.value.trim();
-  const email = document.getElementById("loginEmail").value.trim();
-  const pw = document.getElementById("loginPassword").value;
-  if (!name) {
-    errEl.textContent = "이름을 입력하세요.";
-    nameInput.focus();
-    return;
-  }
-  if (!email || !pw) {
-    errEl.textContent = "이메일과 비밀번호를 입력하세요.";
-    return;
-  }
-  if (pw.length < 6) {
-    errEl.textContent = "비밀번호는 6자 이상이어야 합니다.";
-    return;
-  }
-  try {
-    await auth.createUserWithEmailAndPassword(email, pw);
-    await ensureUserDoc({ email }, name);
-  } catch (e) {
-    errEl.textContent = translateAuthError(e);
-  }
+/* =========================================================
+   [신규] 가입 유형 전환 (교회 가입 / 일반 가입)
+   ========================================================= */
+document.getElementById("showChurchSignupBtn").addEventListener("click", () => {
+  document.getElementById("churchSignupBox").style.display = "block";
+  document.getElementById("regularSignupBox").style.display = "none";
+  document.getElementById("loginError").textContent = "";
 });
+document
+  .getElementById("showRegularSignupBtn")
+  .addEventListener("click", () => {
+    document.getElementById("regularSignupBox").style.display = "block";
+    document.getElementById("churchSignupBox").style.display = "none";
+    document.getElementById("loginError").textContent = "";
+  });
+
+/* 교회 ID(코드) 생성 - 헷갈리기 쉬운 0/O, 1/l/I 등은 제외 */
+function generateChurchCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+async function generateUniqueChurchCode() {
+  for (let i = 0; i < 10; i++) {
+    const code = generateChurchCode();
+    const doc = await db.collection("churches").doc(code).get();
+    if (!doc.exists) return code;
+  }
+  throw new Error("교회 ID 생성에 실패했습니다. 다시 시도해주세요.");
+}
+
+/* =========================================================
+   [신규] 교회 가입 (새 교회 등록 + 관리자 권한)
+   ========================================================= */
+document
+  .getElementById("churchSignupBtn")
+  .addEventListener("click", async () => {
+    const errEl = document.getElementById("loginError");
+    errEl.textContent = "";
+    const nameInput = document.getElementById("churchSignupName");
+    const churchNameInput = document.getElementById("churchSignupChurchName");
+    const name = nameInput.value.trim();
+    const churchName = churchNameInput.value.trim();
+    const email = document.getElementById("loginEmail").value.trim();
+    const pw = document.getElementById("loginPassword").value;
+
+    if (!name) {
+      errEl.textContent = "이름을 입력하세요.";
+      nameInput.focus();
+      return;
+    }
+    if (!churchName) {
+      errEl.textContent = "교회 이름을 입력하세요.";
+      churchNameInput.focus();
+      return;
+    }
+    if (!email || !pw) {
+      errEl.textContent = "이메일과 비밀번호를 입력하세요.";
+      return;
+    }
+    if (pw.length < 6) {
+      errEl.textContent = "비밀번호는 6자 이상이어야 합니다.";
+      return;
+    }
+
+    const btn = document.getElementById("churchSignupBtn");
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "가입 처리 중...";
+    try {
+      const code = await generateUniqueChurchCode();
+      await auth.createUserWithEmailAndPassword(email, pw);
+      await db.collection("churches").doc(code).set({
+        name: churchName,
+        logoUrl: null,
+        plan: "free",
+        createdAt: Date.now(),
+      });
+      await addRoleContext(email, { role: "admin", churchId: code });
+      await ensureUserDoc({ email }, name, code);
+      /* 로그인 후 화면 상단의 '교회 코드' 배지에서 계속 확인/복사할 수 있음 */
+    } catch (e) {
+      errEl.textContent = translateAuthError(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
+/* =========================================================
+   [신규] 일반 가입 (기존 교회의 코드로 소속 가입 - 승인 대기 상태로 시작)
+   ========================================================= */
+document
+  .getElementById("regularSignupBtn")
+  .addEventListener("click", async () => {
+    const errEl = document.getElementById("loginError");
+    errEl.textContent = "";
+    const nameInput = document.getElementById("regularSignupName");
+    const codeInput = document.getElementById("regularSignupCode");
+    const name = nameInput.value.trim();
+    const churchCode = codeInput.value.trim().toUpperCase();
+    const email = document.getElementById("loginEmail").value.trim();
+    const pw = document.getElementById("loginPassword").value;
+
+    if (!name) {
+      errEl.textContent = "이름을 입력하세요.";
+      nameInput.focus();
+      return;
+    }
+    if (!churchCode) {
+      errEl.textContent = "교회 코드를 입력하세요.";
+      codeInput.focus();
+      return;
+    }
+    if (!email || !pw) {
+      errEl.textContent = "이메일과 비밀번호를 입력하세요.";
+      return;
+    }
+    if (pw.length < 6) {
+      errEl.textContent = "비밀번호는 6자 이상이어야 합니다.";
+      return;
+    }
+
+    const btn = document.getElementById("regularSignupBtn");
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "가입 처리 중...";
+    try {
+      const targetChurchDoc = await db
+        .collection("churches")
+        .doc(churchCode)
+        .get();
+      if (!targetChurchDoc.exists) {
+        errEl.textContent =
+          "존재하지 않는 교회 코드입니다. 관리자에게 다시 확인해주세요.";
+        return;
+      }
+      await auth.createUserWithEmailAndPassword(email, pw);
+      await addRoleContext(email, { role: "none", churchId: churchCode });
+      await ensureUserDoc({ email }, name, churchCode);
+    } catch (e) {
+      errEl.textContent = translateAuthError(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 
 document
   .getElementById("logoutBtn")
@@ -111,7 +225,9 @@ function translateAuthError(e) {
   return map[e.code] || "오류: " + e.message;
 }
 
-async function ensureUserDoc(user, name) {
+/* [수정] 가입한 교회(churchId)도 함께 저장 - 운영자/팀장 지정 화면(user-picker)에서
+   "우리 교회에 가입한 사람"만 골라 보여주기 위해 필요함 */
+async function ensureUserDoc(user, name, churchId) {
   try {
     const ref = db.collection("users").doc(user.email);
     const doc = await ref.get();
@@ -119,14 +235,17 @@ async function ensureUserDoc(user, name) {
       await ref.set({
         email: user.email,
         name: name || "",
+        churchId: churchId || null,
         createdAt: Date.now(),
       });
       return name || "";
-    } else if (name && !doc.data().name) {
-      await ref.update({ name });
-      return name;
+    } else {
+      const patch = {};
+      if (name && !doc.data().name) patch.name = name;
+      if (churchId && !doc.data().churchId) patch.churchId = churchId;
+      if (Object.keys(patch).length) await ref.update(patch);
+      return doc.data().name || name || "";
     }
-    return doc.data().name || "";
   } catch (e) {
     /* 유저 정보 저장/조회 실패는 앱 진행에 영향 없도록 무시 (헤더엔 이메일로 대체 표시) */
     return "";
@@ -144,9 +263,10 @@ auth.onAuthStateChanged(async (user) => {
       userName || user.email;
     await resolveRole(user);
 
-    /* [신규] 역할 컨텍스트가 1개 이하면(기존 사용자와 동일) 바로 진입,
-       2개 이상(예: A팀 팀장 + B그룹 운영자 동시 보유)이면 역할 선택 화면을 먼저 보여줌 */
-    if (currentRole === "admin" || userContexts.length <= 1) {
+    /* [수정] 관리자도 이제 "교회별 admin 컨텍스트"라 특별취급 불필요.
+       컨텍스트가 1개 이하면 바로 진입, 2개 이상(여러 교회/역할 겸임)이면
+       역할 선택 화면을 먼저 보여줌 */
+    if (userContexts.length <= 1) {
       activeContextIndex = 0;
       applyActiveContext();
       await enterAppAfterRoleReady();
@@ -161,22 +281,21 @@ auth.onAuthStateChanged(async (user) => {
     roleScope = {};
     userContexts = [];
     activeContextIndex = 0;
+    currentChurchId = null;
+    churchDoc = null;
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appScreen").style.display = "none";
   }
 });
 
-/* [신규] 역할 선택(또는 자동 확정) 이후 공통 진입 절차.
-   기존에는 onAuthStateChanged 안에 바로 있던 로직이었으나,
-   역할 선택 화면에서 사용자가 고른 뒤에도 동일한 절차를 타야 해서 함수로 분리함 */
+/* [신규] 역할 선택(또는 자동 확정) 이후 공통 진입 절차. */
 async function enterAppAfterRoleReady() {
   document.getElementById("roleLabel").textContent = roleName(currentRole);
-  await loadChurchName();
+  await loadChurchInfo();
   document.getElementById("todayLabel").textContent =
     fmtDate(todayStr()) + " 기준";
   /* [수정] 운영자/팀장 이름 표시(userLabel)가 usersList를 참조하는데,
-     기존엔 운영자 지정 모달을 열어야만 채워져서 카테고리·그룹 목록에는
-     이메일만 보였음 - 로그인 직후 미리 로드해둠 */
+     로그인 직후 미리 로드해둠 (우리 교회 소속만) */
   await loadUsers();
   renderRoleSwitcher();
   await initRoleView();
@@ -185,19 +304,11 @@ async function enterAppAfterRoleReady() {
 }
 
 /* =========================================================
-   [신규] 역할(role) 조회 - 다중 컨텍스트 지원
-   - roles/{email} 문서는 이제 { contexts: [{role, groupId?, categoryId?}, ...] } 형태.
-   - 예전 단일 role 문서({role, groupId/categoryId})도 자동으로 배열 1개짜리로 변환해 읽으므로
-   기존 가입자는 별도 마이그레이션 없이 그대로 동작함.
+   [신규] 역할(role) 조회 - 다중 컨텍스트 지원 (교회별 admin 포함)
+   - roles/{email} 문서는 { contexts: [{role, churchId, groupId?, categoryId?}, ...] } 형태.
+   - 예전 단일 role 문서({role, groupId/categoryId})도 자동으로 배열 1개짜리로 변환해 읽음
    ========================================================= */
 async function resolveRole(user) {
-  if (user.email === ADMIN_EMAIL) {
-    currentRole = "admin";
-    roleScope = {};
-    userContexts = [];
-    activeContextIndex = 0;
-    return;
-  }
   try {
     const doc = await db.collection("roles").doc(user.email).get();
     userContexts = extractContexts(doc.exists ? doc.data() : null);
@@ -226,24 +337,24 @@ function extractContexts(data) {
 function sameContext(a, b) {
   return (
     a.role === b.role &&
+    (a.churchId || null) === (b.churchId || null) &&
     (a.groupId || null) === (b.groupId || null) &&
     (a.categoryId || null) === (b.categoryId || null)
   );
 }
 
-/* 활성 컨텍스트(userContexts[activeContextIndex])를 currentRole/roleScope에 반영 */
+/* 활성 컨텍스트(userContexts[activeContextIndex])를 currentRole/roleScope/currentChurchId에 반영 */
 function applyActiveContext() {
-  if (currentRole === "admin") {
-    roleScope = {};
-    return;
-  }
   const ctx = userContexts[activeContextIndex];
   if (!ctx) {
     currentRole = "none";
     roleScope = {};
+    currentChurchId = null;
+    churchDoc = null;
     return;
   }
   currentRole = ctx.role;
+  currentChurchId = ctx.churchId || null;
   roleScope = ctx.categoryId
     ? { categoryId: ctx.categoryId }
     : ctx.groupId
@@ -251,8 +362,11 @@ function applyActiveContext() {
       : {};
 }
 
-/* 역할 선택 화면/전환 드롭다운에 표시할 이름(그룹명·카테고리명)을 채워 넣음 */
+/* 역할 선택 화면/전환 드롭다운에 표시할 이름(교회명·그룹명·카테고리명)을 채워 넣음 */
 async function loadContextLabels() {
+  const churchIds = [
+    ...new Set(userContexts.map((c) => c.churchId).filter(Boolean)),
+  ];
   const groupIds = [
     ...new Set(userContexts.filter((c) => c.groupId).map((c) => c.groupId)),
   ];
@@ -261,12 +375,19 @@ async function loadContextLabels() {
       userContexts.filter((c) => c.categoryId).map((c) => c.categoryId),
     ),
   ];
-  const [groupDocs, catDocs] = await Promise.all([
+  const [churchDocs, groupDocs, catDocs] = await Promise.all([
+    Promise.all(churchIds.map((id) => db.collection("churches").doc(id).get())),
     Promise.all(groupIds.map((id) => db.collection("groups").doc(id).get())),
     Promise.all(
       catIds.map((id) => db.collection("categories").doc(id).get()),
     ),
   ]);
+  const churchNameMap = {};
+  churchIds.forEach((id, i) => {
+    churchNameMap[id] = churchDocs[i].exists
+      ? churchDocs[i].data().name
+      : "알 수 없는 교회";
+  });
   const groupNameMap = {};
   groupIds.forEach((id, i) => {
     groupNameMap[id] = groupDocs[i].exists
@@ -280,22 +401,45 @@ async function loadContextLabels() {
       : "삭제된 카테고리";
   });
   userContexts.forEach((c) => {
-    if (c.role === "leader") {
+    const churchName = churchNameMap[c.churchId] || "";
+    if (c.role === "admin") {
+      c.scopeName = churchName;
+      c.label = `${churchName} · 관리자`;
+    } else if (c.role === "leader") {
       c.scopeName = groupNameMap[c.groupId] || "그룹";
-      c.label = `${c.scopeName} · 팀장`;
+      c.label = `${churchName} · ${c.scopeName} · 팀장`;
     } else if (c.role === "operator") {
       c.scopeName = catNameMap[c.categoryId] || "카테고리";
-      c.label = `${c.scopeName} · 운영자`;
+      c.label = `${churchName} · ${c.scopeName} · 운영자`;
     } else {
-      c.label = roleName(c.role);
+      c.scopeName = churchName;
+      c.label = `${churchName} · 승인 대기`;
     }
   });
 }
 
 /* =========================================================
-   [신규] roles/{email} 문서에 컨텍스트 추가/제거 (팀장·운영자 지정/해제 시 사용)
-   - 트랜잭션으로 처리해 동시에 여러 그룹에 지정되어도 유실되지 않도록 함
-   ========================================================= */
+   [신규] roles/{email} 문서에 컨텍스트 추가/제거 (팀장·운영자·관리자 지정/해제 시 사용)
+   - contexts 외에 churchIds(가입된 모든 교회)와 approvedChurchIds(승인된
+   역할을 가진 교회, 즉 role이 "none"이 아닌 것)도 함께 유지함.
+   Firestore 보안 규칙은 배열 안의 map을 부분일치로 걸러낼 수 없어서,
+   "이 사람이 이 교회에 뭔가 승인된 역할이 있는지"를 규칙에서 싸게
+   확인하려면 이렇게 평평한(flat) 배열이 따로 필요함 */
+function computeChurchIdArrays(contexts) {
+  const churchIds = [
+    ...new Set(contexts.map((c) => c.churchId).filter(Boolean)),
+  ];
+  const approvedChurchIds = [
+    ...new Set(
+      contexts
+        .filter((c) => c.role && c.role !== "none")
+        .map((c) => c.churchId)
+        .filter(Boolean),
+    ),
+  ];
+  return { churchIds, approvedChurchIds };
+}
+
 async function addRoleContext(email, ctx) {
   const ref = db.collection("roles").doc(email);
   await db.runTransaction(async (t) => {
@@ -304,7 +448,8 @@ async function addRoleContext(email, ctx) {
     if (!contexts.some((c) => sameContext(c, ctx))) {
       contexts = [...contexts, ctx];
     }
-    t.set(ref, { contexts }, { merge: false });
+    const { churchIds, approvedChurchIds } = computeChurchIdArrays(contexts);
+    t.set(ref, { contexts, churchIds, approvedChurchIds }, { merge: false });
   });
 }
 
@@ -315,25 +460,113 @@ async function removeRoleContext(email, ctx) {
     if (!doc.exists) return;
     let contexts = extractContexts(doc.data());
     contexts = contexts.filter((c) => !sameContext(c, ctx));
-    t.set(ref, { contexts }, { merge: false });
+    const { churchIds, approvedChurchIds } = computeChurchIdArrays(contexts);
+    t.set(ref, { contexts, churchIds, approvedChurchIds }, { merge: false });
   });
 }
 
-async function loadChurchName() {
+/* =========================================================
+   [신규] 교회 정보 로딩 - 이름/로고/교회코드/요금제 배지까지 한 번에 반영
+   ========================================================= */
+async function loadChurchInfo() {
+  const nameInput = document.getElementById("churchName");
+  const logoImg = document.getElementById("churchLogoImg");
+  const logoLabel = document.getElementById("logoUploadLabel");
+  const codeBadge = document.getElementById("churchCodeBadge");
+  const codeText = document.getElementById("churchCodeText");
+
+  if (!currentChurchId) {
+    nameInput.value = "";
+    nameInput.disabled = true;
+    logoImg.src = "icon.jpg";
+    logoLabel.style.display = "none";
+    codeBadge.style.display = "none";
+    return;
+  }
+
   try {
-    const doc = await db.collection("settings").doc("church").get();
-    const raw =
-      doc.exists && doc.data().name ? doc.data().name : "서산성결교회";
-    /* [수정] Firestore에 예전에 띄어쓰기 있는 값("서산 성결 교회")이 저장돼 있어도
-       화면엔 항상 붙여서("서산성결교회") 보이도록 공백을 제거함.
-       그래서 로그인 직후 값이 바뀌며 간격이 벌어지는 현상이 다시는 생기지 않음 */
-    const name = raw.replace(/\s+/g, "");
-    document.getElementById("churchName").value = name;
+    const doc = await db.collection("churches").doc(currentChurchId).get();
+    churchDoc = doc.exists ? { id: currentChurchId, ...doc.data() } : null;
+    nameInput.value = churchDoc ? churchDoc.name : "";
+    logoImg.src = churchDoc && churchDoc.logoUrl ? churchDoc.logoUrl : "icon.jpg";
   } catch (e) {}
-  document.getElementById("churchName").disabled = currentRole !== "admin";
+
+  nameInput.disabled = currentRole !== "admin";
+  logoLabel.style.display = currentRole === "admin" ? "inline-block" : "none";
+  codeBadge.style.display = currentRole === "admin" ? "flex" : "none";
+  codeText.textContent = currentChurchId;
+  updatePlanBadge();
 }
 
 document.getElementById("churchName").addEventListener("change", async (e) => {
-  if (currentRole !== "admin") return;
-  await db.collection("settings").doc("church").set({ name: e.target.value });
+  if (currentRole !== "admin" || !currentChurchId) return;
+  await db
+    .collection("churches")
+    .doc(currentChurchId)
+    .update({ name: e.target.value });
+  if (churchDoc) churchDoc.name = e.target.value;
 });
+
+/* [신규] 교회 코드 복사 버튼 */
+document
+  .getElementById("copyChurchCodeBtn")
+  .addEventListener("click", async () => {
+    if (!currentChurchId) return;
+    const btn = document.getElementById("copyChurchCodeBtn");
+    const original = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(currentChurchId);
+      btn.textContent = "복사됨!";
+    } catch (e) {
+      alert("복사에 실패했습니다. 교회 코드: " + currentChurchId);
+    }
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 1500);
+  });
+
+/* [신규] 교회 로고 업로드 (Firebase Storage) */
+document
+  .getElementById("logoUploadInput")
+  .addEventListener("change", async (e) => {
+    if (currentRole !== "admin" || !currentChurchId) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    const input = e.target;
+    input.disabled = true;
+    try {
+      const ref = storage.ref(`church-logos/${currentChurchId}`);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      await db
+        .collection("churches")
+        .doc(currentChurchId)
+        .update({ logoUrl: url });
+      document.getElementById("churchLogoImg").src = url;
+      if (churchDoc) churchDoc.logoUrl = url;
+    } catch (err) {
+      alert("로고 업로드에 실패했습니다: " + err.message);
+    } finally {
+      input.disabled = false;
+      input.value = "";
+    }
+  });
+
+/* =========================================================
+   [신규] 요금제 상태 (실제 결제 연동 전까지는 관리자가 직접 토글)
+   ========================================================= */
+function updatePlanBadge() {
+  const text = document.getElementById("planStatusText");
+  if (!text) return;
+  text.textContent = churchDoc && churchDoc.plan === "paid" ? "유료" : "무료";
+}
+
+document
+  .getElementById("planToggleBtn")
+  .addEventListener("click", async () => {
+    if (currentRole !== "admin" || !currentChurchId) return;
+    const next = churchDoc && churchDoc.plan === "paid" ? "free" : "paid";
+    await db.collection("churches").doc(currentChurchId).update({ plan: next });
+    if (churchDoc) churchDoc.plan = next;
+    updatePlanBadge();
+  });

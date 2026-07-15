@@ -15,7 +15,14 @@ function userNameOf(email) {
 
 async function loadUsers() {
   try {
-    const snap = await db.collection("users").get();
+    if (!currentChurchId) {
+      usersList = [];
+      return;
+    }
+    const snap = await db
+      .collection("users")
+      .where("churchId", "==", currentChurchId)
+      .get();
     usersList = snap.docs.map((d) => ({ email: d.id, ...d.data() }));
     usersList = sortByName(usersList, (u) => u.name || u.email);
   } catch (e) {

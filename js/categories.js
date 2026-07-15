@@ -2,7 +2,10 @@
    카테고리 관리
    ========================================================= */
 async function loadCategories() {
-  const snap = await db.collection("categories").get();
+  const snap = await db
+    .collection("categories")
+    .where("churchId", "==", currentChurchId)
+    .get();
   categories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   categoriesCache = Object.fromEntries(categories.map((c) => [c.id, c]));
 }
@@ -18,7 +21,10 @@ async function renderCategoriesView() {
     return;
   }
 
-  const groupSnap = await db.collection("groups").get();
+  const groupSnap = await db
+    .collection("groups")
+    .where("churchId", "==", currentChurchId)
+    .get();
   const groupCountMap = {};
   groupSnap.docs.forEach((d) => {
     const gc = d.data().categoryId;
@@ -139,9 +145,12 @@ document
     btn.textContent = "등록 중...";
 
     try {
-      await db
-        .collection("categories")
-        .add({ name, operatorEmail: null, createdAt: Date.now() });
+      await db.collection("categories").add({
+        name,
+        operatorEmail: null,
+        churchId: currentChurchId,
+        createdAt: Date.now(),
+      });
       nameInput.value = "";
       await loadCategories();
       await renderCategoriesView();
@@ -167,6 +176,7 @@ async function assignOperator(catId) {
     await removeRoleContext(cat.operatorEmail, {
       role: "operator",
       categoryId: catId,
+      churchId: currentChurchId,
     }).catch(() => {});
   }
   await db
@@ -174,7 +184,11 @@ async function assignOperator(catId) {
     .doc(catId)
     .update({ operatorEmail: trimmed });
   if (trimmed) {
-    await addRoleContext(trimmed, { role: "operator", categoryId: catId });
+    await addRoleContext(trimmed, {
+      role: "operator",
+      categoryId: catId,
+      churchId: currentChurchId,
+    });
   }
   await loadCategories();
   await renderCategoriesView();
@@ -204,6 +218,7 @@ async function deleteCategory(catId) {
       await removeRoleContext(email, {
         role: "leader",
         groupId: gdoc.id,
+        churchId: currentChurchId,
       }).catch(() => {});
     }
     await gdoc.ref.delete();
@@ -212,6 +227,7 @@ async function deleteCategory(catId) {
     await removeRoleContext(cat.operatorEmail, {
       role: "operator",
       categoryId: catId,
+      churchId: currentChurchId,
     }).catch(() => {});
   await db.collection("categories").doc(catId).delete();
   await loadCategories();

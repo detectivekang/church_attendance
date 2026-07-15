@@ -17,18 +17,11 @@
     <div class="login-screen" id="loginScreen">
       <div class="login-card" id="loginCard">
         <div class="brand-logo-wrapper">
-          <img src="icon.jpg" alt="서산성결교회 로고" class="brand-logo" />
+          <img src="icon.jpg" alt="교회 출석부" class="brand-logo" />
         </div>
         <div class="login-title">
-          서산 성결 교회<span>출 석 부 로 그 인</span>
+          교회 출석부<span>로 그 인</span>
         </div>
-        <input
-          type="text"
-          id="signupName"
-          placeholder="이름 (회원가입 시 입력)"
-          autocomplete="name"
-          style="display: none"
-        />
         <input
           type="email"
           id="loginEmail"
@@ -43,7 +36,53 @@
         />
         <div class="login-error" id="loginError"></div>
         <button class="btn" id="loginBtn">로그인</button>
-        <button class="btn ghost" id="signupBtn">회원가입</button>
+
+        <!-- [신규] 가입 유형 선택 - 교회 가입(관리자) / 일반 가입(교회 코드 필요) -->
+        <div class="signup-toggle">
+          <button class="btn ghost small" id="showChurchSignupBtn">
+            교회 가입 (관리자)
+          </button>
+          <button class="btn ghost small" id="showRegularSignupBtn">
+            일반 가입
+          </button>
+        </div>
+
+        <div class="signup-box" id="churchSignupBox" style="display: none">
+          <p class="signup-box-desc">
+            새 교회를 등록하고 관리자 권한으로 시작합니다.
+          </p>
+          <input
+            type="text"
+            id="churchSignupName"
+            placeholder="이름"
+            autocomplete="name"
+          />
+          <input
+            type="text"
+            id="churchSignupChurchName"
+            placeholder="교회 이름 (예: 서산성결교회)"
+          />
+          <button class="btn" id="churchSignupBtn">교회 가입 완료</button>
+        </div>
+
+        <div class="signup-box" id="regularSignupBox" style="display: none">
+          <p class="signup-box-desc">
+            소속 교회의 관리자에게 받은 교회 코드로 가입합니다.
+          </p>
+          <input
+            type="text"
+            id="regularSignupName"
+            placeholder="이름"
+            autocomplete="name"
+          />
+          <input
+            type="text"
+            id="regularSignupCode"
+            placeholder="교회 코드"
+            autocomplete="off"
+          />
+          <button class="btn" id="regularSignupBtn">가입 완료</button>
+        </div>
 
         <!-- [신규] 비밀번호를 잊었을 때 - 가입 이메일로 재설정 링크 발송 -->
         <div class="forgot-pw-wrap">
@@ -63,10 +102,10 @@
         </div>
 
         <p class="login-hint">
-          회원가입 시 이름을 입력하면 관리자가 운영자·팀장을 지정할 때<br />
+          이름을 입력해두면 관리자·운영자가 팀장을 지정할 때<br />
           목록에서 이름으로 바로 선택할 수 있습니다.<br />
-          가입 후에는 관리자(또는 운영자·팀장)가 권한을<br />지정해주어야 화면이
-          열립니다.
+          일반 가입 후에는 관리자(또는 운영자·팀장)가 권한을<br />지정해주어야
+          화면이 열립니다.
         </p>
       </div>
     </div>
@@ -76,14 +115,29 @@
       <div class="cover">
         <div class="cover-inner">
           <div class="brand-logo-wrapper">
-            <img src="icon.jpg" alt="서산성결교회 로고" class="brand-logo" />
+            <img src="icon.jpg" alt="교회 로고" class="brand-logo" id="churchLogoImg" />
+            <!-- [신규] 관리자 전용: 교회 로고 업로드 -->
+            <label class="logo-upload-btn" id="logoUploadLabel" style="display: none">
+              로고 변경
+              <input
+                type="file"
+                id="logoUploadInput"
+                accept="image/*"
+                style="display: none"
+              />
+            </label>
           </div>
           <input
             type="text"
             class="church-name"
             id="churchName"
-            value="서산성결교회"
+            value=""
           />
+          <!-- [신규] 관리자 전용: 다른 사람 가입시킬 때 공유할 교회 코드 -->
+          <div class="church-code-badge" id="churchCodeBadge" style="display: none">
+            교회 코드 <b id="churchCodeText"></b>
+            <button class="btn ghost small" id="copyChurchCodeBtn">복사</button>
+          </div>
           <div class="cover-sub">출 석 부</div>
         </div>
         <div class="cover-date" id="todayLabel"></div>
@@ -137,6 +191,10 @@
               id="openNoticeAdminBtn"
             >
               공지사항 관리
+            </button>
+            <!-- [신규] 요금제 상태 (실제 결제 연동 전까지는 관리자가 직접 토글) -->
+            <button class="btn ghost small plan-badge" id="planToggleBtn">
+              요금제: <span id="planStatusText">무료</span>
             </button>
           </h2>
           <p class="section-desc">
@@ -450,6 +508,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- 앱 스크립트 (기능별로 분리됨, 순서 중요) -->

@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* =========================================================
+       공통 헬퍼 함수
+       ========================================================= */
+    function signedIn() {
+      return request.auth != null;
+    }
+    function myEmail() {
+      return request.auth.token.email;
+    }
+    function hasRolesDoc() {
+      return exists(/databases/$(database)/documents/roles/$(myEmail()));
+    }
+    function myRolesDoc() {
+      return get(/databases/$(database)/documents/roles/$(myEmail()));
+    }
+    /* 내가 가진 모든 역할 컨텍스트 (admin/leader/operator/none 전부 포함) */
+    function myContexts() {
+      return hasRolesDoc() ? myRolesDoc().data.contexts : [];
+    }
+    /* 내가 "가입만 하고 대기 중"인 것까지 포함해 걸쳐있는 모든 교회 ID */
+    function myAllChurchIds() {
+      return hasRolesDoc() ? myRolesDoc().data.churchIds : [];
+    }
+    /* 내가 "승인된"(none이 아닌) 역할을 가진 교회 ID만 */
+    function myApprovedChurchIds() {
+      return hasRolesDoc() ? myRolesDoc().data.approvedChurchIds : [];
+    }
+    /* 내가 정확히 이 역할 컨텍스트(map)를 갖고 있는지 */
+    function hasContext(ctx) {
+      return signedIn() && myContexts().hasAny([ctx]);
+    }
+    function isAdminOf(churchId) {
+      return hasContext({"role": "admin", "churchId": churchId});
+    }
+    function isOperatorOf(churchId, categoryId) {
+      return hasContext({"role": "operator", "churchId": churchId, "categoryId": categoryId});
+    }
+    function isLeaderOf(churchId, groupId) {
+      return hasContext({"role": "leader", "churchId": churchId, "groupId": groupId});
+    }
+    /* 이 교회에 대해 뭐든 "승인된" 역할(admin/operator/leader)이 있는지 -
+       그룹/카테고리 단위까지는 못 가리지만, "이 교회의 승인된 스태프"인지는
+       색인 하나로 싸게 확인 가능 (출석 기록처럼 그룹 스코프가 문서 구조상
+       애매한 경우에 사용) */
+    function hasApprovedRoleIn(churchId) {
+      return signedIn() && myApprovedChurchIds().hasAny([churchId]);
+    }
+    function categoryOfGroup(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId)).data.categoryId;
+    }
+
+    /* =========================================================
+       churches - 일반가입 때 코드 존재 확인을 로그인 전에도 해야 해서
+       읽기는 공개. 생성은 로그인한 사람이 "본인을 관리자로" 새로 만들
+       때만 허용(교회 가입 흐름), 수정/삭제는 그 교회 관리자만.
+       ========================================================= */
+    match /churches/{churchId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.adminEmail == myEmail();
+      allow update, delete: if isAdminOf(churchId);
+    }
+
+    /* =========================================================
+       categories - 해당 교회 관리자만 생성/수정/삭제
+       ========================================================= */
+    match /categories/{categoryId} {
+      allow read: if signedIn();
+      allow create: if isAdminOf(request.resource.data.churchId);
+      allow update, delete: if isAdminOf(resource.data.churchId);
+    }
+
+    /* =========================================================
+       groups - 관리자 또는 해당 카테고리 운영자. 팀장도 출석옵션
+       토글 등 자기 그룹 문서 일부를 수정하므로 팀장도 허용
+       ========================================================= */
+    match /groups/{groupId} {
+      allow read: if signedIn();
+      allow create: if isAdminOf(request.resource.data.churchId)
+        || isOperatorOf(request.resource.data.churchId, request.resource.data.categoryId);
+      allow update, delete: if isAdminOf(resource.data.churchId)
+        || isOperatorOf(resource.data.churchId, resource.data.categoryId)
+        || isLeaderOf(resource.data.churchId, groupId);
+    }
+
+    /* =========================================================
+       members - 관리자, 해당 그룹 팀장, 또는 그 그룹이 속한 카테고리
+       운영자(그룹 삭제 시 소속 팀원도 함께 정리하므로 운영자도 필요)
+       ========================================================= */
+    match /members/{memberId} {
+      allow read: if signedIn();
+      allow create: if isAdminOf(request.resource.data.churchId)
+        || isLeaderOf(request.resource.data.churchId, request.resource.data.groupId)
+        || isOperatorOf(request.resource.data.churchId, categoryOfGroup(request.resource.data.groupId));
+      allow update, delete: if isAdminOf(resource.data.churchId)
+        || isLeaderOf(resource.data.churchId, resource.data.groupId)
+        || isOperatorOf(resource.data.churchId, categoryOfGroup(resource.data.groupId));
+    }
+
+    /* =========================================================
+       attendance - 문서 하나에 여러 그룹 팀원이 섞여 있을 수 있어
+       그룹 단위 검증 대신 "이 교회의 승인된 스태프인지"까지만 확인
+       ========================================================= */
+    match /attendance/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdminOf(request.resource.data.churchId)
+        || hasApprovedRoleIn(request.resource.data.churchId);
+    }
+
+    /* =========================================================
+       roles - 최초 가입(교회 가입 admin / 일반 가입 none)은 본인이
+       스스로 만들 수 있되, 조작 방지를 위해 정확히 아래 두 형태일 때만
+       허용. 그 이후 팀장/운영자 지정 등은 관리자 또는 같은 교회의
+       승인된 스태프만 수정 가능.
+       ========================================================= */
+    match /roles/{email} {
+      allow read: if signedIn()
+        && (myEmail() == email || myApprovedChurchIds().hasAny(resource.data.churchIds));
+
+      allow create: if signedIn() && myEmail() == email
+        && request.resource.data.contexts.size() == 1
+        && (
+          (
+            request.resource.data.contexts[0].role == "admin"
+            && exists(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId))
+            && get(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId)).data.adminEmail == myEmail()
+          )
+          ||
+          (
+            request.resource.data.contexts[0].role == "none"
+            && exists(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId))
+          )
+        );
+
+      allow update: if signedIn()
+        && (
+          request.resource.data.churchIds.hasAny(myApprovedChurchIds())
+          || (resource != null && resource.data.churchIds.hasAny(myApprovedChurchIds()))
+        );
+
+      allow delete: if false;
+    }
+
+    /* =========================================================
+       users - 이름 조회는 같은 교회 사람끼리만. 본인 문서 생성/수정은
+       자유, 다른 사람 문서는 그 교회 관리자만 수정 가능
+       ========================================================= */
+    match /users/{email} {
+      allow read: if signedIn()
+        && (myEmail() == email || myAllChurchIds().hasAny([resource.data.churchId]));
+      allow create: if signedIn() && myEmail() == email;
+      allow update: if signedIn()
+        && (myEmail() == email || isAdminOf(resource.data.churchId));
+    }
+
+    /* =========================================================
+       notices - 조회는 같은 교회 소속(대기중 포함), 작성/수정/삭제는
+       그 교회 관리자만
+       ========================================================= */
+    match /notices/{noticeId} {
+      allow read: if signedIn() && myAllChurchIds().hasAny([resource.data.churchId]);
+      allow create: if isAdminOf(request.resource.data.churchId);
+      allow update, delete: if isAdminOf(resource.data.churchId);
+    }
+
+    /* 위에서 명시하지 않은 나머지 모든 경로는 기본적으로 전부 차단됨.
+       (구버전 단일교회 시절의 settings/church 문서는 더 이상 사용하지
+       않음 - 교회 이름/로고/요금제는 이제 churches/{churchId}에 저장) */
+  }
+}

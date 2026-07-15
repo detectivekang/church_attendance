@@ -29,13 +29,19 @@ function saveNoticeDismiss(noticeId) {
    로그인 직후 팝업 노출
    ========================================================= */
 async function checkNoticePopups() {
+  if (!currentChurchId) return;
   let snap;
   try {
     /* [수정] where+orderBy 조합은 Firestore 복합 색인이 없으면 조회 자체가
        실패하는데, 그 에러를 조용히 무시하고 있어서 팝업이 안 뜨는데도
        원인을 알 수 없었음. 정렬은 클라이언트에서 하도록 바꿔 색인 없이도
-       동작하게 하고, 실패 시에는 콘솔에 에러를 남김 */
-    snap = await db.collection("notices").where("popup", "==", true).get();
+       동작하게 하고, 실패 시에는 콘솔에 에러를 남김.
+       [수정] 교회별로 격리 (churchId + popup 복합 색인 필요 - firestore.indexes.json 참고) */
+    snap = await db
+      .collection("notices")
+      .where("churchId", "==", currentChurchId)
+      .where("popup", "==", true)
+      .get();
   } catch (e) {
     console.error("공지사항 팝업 조회 실패:", e);
     return;
@@ -76,14 +82,19 @@ function showNoticeQueue(queue) {
 async function loadNotices() {
   const snap = await db
     .collection("notices")
+    .where("churchId", "==", currentChurchId)
     .orderBy("createdAt", "desc")
     .get();
   notices = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/* [신규] 팝업은 항상 1개만 켜지도록, 켜진 것들을 전부 끔 */
+/* [신규] 팝업은 항상 1개만 켜지도록, 켜진 것들을 전부 끔 (현재 교회 범위 내) */
 async function turnOffAllPopups() {
-  const snap = await db.collection("notices").where("popup", "==", true).get();
+  const snap = await db
+    .collection("notices")
+    .where("churchId", "==", currentChurchId)
+    .where("popup", "==", true)
+    .get();
   if (snap.empty) return;
   const batch = db.batch();
   snap.docs.forEach((d) => batch.update(d.ref, { popup: false }));
@@ -177,6 +188,7 @@ document.getElementById("addNoticeBtn").addEventListener("click", async () => {
     await db.collection("notices").add({
       content,
       popup: popupInput.checked,
+      churchId: currentChurchId,
       createdAt: Date.now(),
       createdBy: currentUser.email,
     });

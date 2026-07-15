@@ -20,4 +20,8 @@ db.settings({
   experimentalAutoDetectLongPolling: false,
 });
 
-const ADMIN_EMAIL = "kangseabich@naver.com";
+/* [신규] 교회 로고 업로드용 Storage 클라이언트 */
+const storage = firebase.storage();
+
+/* [수정] 이제 관리자는 교회마다 따로(churches/{churchId}.adminEmail) 존재하므로
+   전역 고정 ADMIN_EMAIL은 더 이상 사용하지 않음 (auth.js의 resolveRole 참고) */

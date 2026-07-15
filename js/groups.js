@@ -181,7 +181,7 @@ async function renderCategoryOverview() {
     const overviewServices = generateSundaysForYear(overviewYear);
     const attSnaps = await Promise.all(
       overviewServices.map((s) =>
-        db.collection("attendance").doc(s.id).get(),
+        db.collection("attendance").doc(attendanceDocId(s.id)).get(),
       ),
     );
     const overviewAttendance = {};
@@ -386,6 +386,7 @@ document.getElementById("addGroupBtn").addEventListener("click", async (e) => {
     await db.collection("groups").add({
       name,
       categoryId: selectedCategoryId,
+      churchId: currentChurchId,
       leaderEmails: [],
       trackDonation: false,
       trackBible: false,
@@ -419,12 +420,18 @@ async function assignLeaders(groupId) {
   const added = after.filter((e) => !before.includes(e));
 
   for (const email of removed) {
-    await removeRoleContext(email, { role: "leader", groupId: groupId }).catch(
-      () => {},
-    );
+    await removeRoleContext(email, {
+      role: "leader",
+      groupId: groupId,
+      churchId: currentChurchId,
+    }).catch(() => {});
   }
   for (const email of added) {
-    await addRoleContext(email, { role: "leader", groupId: groupId });
+    await addRoleContext(email, {
+      role: "leader",
+      groupId: groupId,
+      churchId: currentChurchId,
+    });
   }
   await db.collection("groups").doc(groupId).update({ leaderEmails: after });
   await loadGroups(selectedCategoryId);
@@ -446,6 +453,7 @@ async function deleteGroup(groupId) {
       await removeRoleContext(email, {
         role: "leader",
         groupId: groupId,
+        churchId: currentChurchId,
       }).catch(() => {});
     }
   }

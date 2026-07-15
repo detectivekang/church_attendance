@@ -146,6 +146,7 @@ document.getElementById("excelUploadSave").addEventListener("click", async () =>
           name: r.name,
           birthday: r.birthday || null,
           groupId: selectedGroupId,
+          churchId: currentChurchId,
           createdAt: Date.now(),
         });
         insertCount++;
@@ -440,7 +441,7 @@ document
         serviceIds.map((sid) =>
           attendance[sid]
             ? Promise.resolve({ exists: true, data: () => attendance[sid] })
-            : db.collection("attendance").doc(sid).get(),
+            : db.collection("attendance").doc(attendanceDocId(sid)).get(),
         ),
       );
 
@@ -448,12 +449,12 @@ document
       serviceIds.forEach((sid, i) => {
         const existing = fetched[i].exists ? fetched[i].data() : {};
         const patchByMember = attendancePlan.bySerivce[sid];
-        const docPatch = {};
+        const docPatch = { churchId: currentChurchId };
         Object.keys(patchByMember).forEach((memberId) => {
           const cur = normalizeRecord(existing[memberId]);
           docPatch[memberId] = { ...cur, ...patchByMember[memberId] };
         });
-        batch.set(db.collection("attendance").doc(sid), docPatch, {
+        batch.set(db.collection("attendance").doc(attendanceDocId(sid)), docPatch, {
           merge: true,
         });
         // 현재 화면에 로드된 연도라면 메모리 상태도 함께 갱신

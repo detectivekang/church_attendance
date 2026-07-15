@@ -731,6 +731,62 @@ button.btn:disabled {
   border-color: var(--gold);
 }
 
+/* [신규] 가입 유형 선택 (교회 가입 / 일반 가입) */
+.signup-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+}
+.signup-toggle .btn {
+  flex: 1;
+}
+.signup-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px dashed var(--paper-line);
+  border-radius: 8px;
+}
+.signup-box-desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0 0 2px;
+}
+
+/* [신규] 교회 로고 업로드 버튼 (관리자 전용) */
+.logo-upload-btn {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* [신규] 교회 코드 배지 (관리자 전용 - 일반가입 안내용) */
+.church-code-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  font-size: 12px;
+  color: #f7efda;
+  margin: 4px 0;
+}
+.church-code-badge b {
+  font-family: monospace;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* [신규] 요금제 상태 배지 */
+.plan-badge {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
 /* [신규] 로그인 화면 - 비밀번호 찾기 */
 .forgot-pw-wrap {
   text-align: center;

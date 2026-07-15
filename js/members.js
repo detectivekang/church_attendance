@@ -167,6 +167,7 @@ document.getElementById("addMemberBtn").addEventListener("click", async (e) => {
       name,
       birthday,
       groupId: selectedGroupId,
+      churchId: currentChurchId,
       createdAt: Date.now(),
     });
     nameInput.value = "";
