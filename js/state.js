@@ -5,17 +5,16 @@ let currentUser = null;
 let currentRole = null;
 let roleScope = {};
 
-/* [신규] 다중 교회(멀티테넌시) 지원
-   - 한 계정은 하나의 교회에만 소속됨(가입 시 결정)
-   - churchId는 해당 교회의 고유 코드(랜덤 발급, 일반가입 시 이 코드로 가입)
-   - churchDoc은 churches/{churchId} 문서 캐시(이름/로고/요금제 등) */
+/* [신규] 멀티테넌트(교회별 데이터 분리) - 로그인한 사용자가 속한 교회 ID와
+   그 교회 문서(이름/코드/요금제/승인상태) 캐시. superadmin(관리자)은
+   특정 교회에 속하지 않으므로 null로 유지됨 */
 let currentChurchId = null;
-let churchDoc = null;
+let currentChurchData = null;
 
-/* [신규] 다중 역할 지원 - 한 사람이 여러 교회/팀의 역할을 겸할 수 있으므로,
-   roles 문서의 단일 role 대신 "역할 컨텍스트" 배열을 들고 있다가
-   그중 하나를 활성 컨텍스트로 사용함.
-   컨텍스트 형태: { role: "admin"|"leader"|"operator"|"none", churchId, groupId?, categoryId?, label? } */
+/* [신규] 다중 역할 지원 - 한 사람이 여러 팀의 팀장이거나
+   팀장+운영자를 동시에 겸할 수 있으므로, roles 문서의 단일 role 대신
+   "역할 컨텍스트" 배열을 들고 있다가 그중 하나를 활성 컨텍스트로 사용함.
+   컨텍스트 형태: { role: "leader"|"operator", groupId?, categoryId?, label? } */
 let userContexts = [];
 let activeContextIndex = 0;
 
@@ -32,7 +31,7 @@ let attendance = {};
 let currentServiceId = null;
 let selectedYear = new Date().getFullYear();
 
-let usersList = []; // 우리 교회에 가입한 유저 목록 {email, name}
+let usersList = []; // 가입한 전체 유저 {email, name}
 let editingMemberId = null;
 let editingGroupId = null;
 let editingCategoryId = null;

@@ -8,8 +8,7 @@ function normalizeLeaderEmails(g) {
 }
 
 async function loadGroups(categoryId) {
-  const snap = await db
-    .collection("groups")
+  const snap = await churchCol("groups")
     .where("categoryId", "==", categoryId)
     .get();
   groups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -38,8 +37,7 @@ async function renderGroupsView() {
 
   const memberCountMap = {};
   const countPromises = groups.map(async (g) => {
-    const snap = await db
-      .collection("members")
+    const snap = await churchCol("members")
       .where("groupId", "==", g.id)
       .get();
     memberCountMap[g.id] = snap.size;
@@ -127,7 +125,7 @@ async function renderGroupsView() {
       btn.disabled = true;
       btn.textContent = "저장 중...";
       try {
-        await db.collection("groups").doc(id).update({ name });
+        await churchCol("groups").doc(id).update({ name });
         editingGroupId = null;
         await loadGroups(selectedCategoryId);
         await renderGroupsView();
@@ -161,7 +159,7 @@ async function renderCategoryOverview() {
   try {
     const memberSnaps = await Promise.all(
       groups.map((g) =>
-        db.collection("members").where("groupId", "==", g.id).get(),
+        churchCol("members").where("groupId", "==", g.id).get(),
       ),
     );
     const allMembers = [];
@@ -181,7 +179,7 @@ async function renderCategoryOverview() {
     const overviewServices = generateSundaysForYear(overviewYear);
     const attSnaps = await Promise.all(
       overviewServices.map((s) =>
-        db.collection("attendance").doc(attendanceDocId(s.id)).get(),
+        churchCol("attendance").doc(s.id).get(),
       ),
     );
     const overviewAttendance = {};
@@ -383,10 +381,9 @@ document.getElementById("addGroupBtn").addEventListener("click", async (e) => {
   btn.textContent = "등록 중...";
 
   try {
-    await db.collection("groups").add({
+    await churchCol("groups").add({
       name,
       categoryId: selectedCategoryId,
-      churchId: currentChurchId,
       leaderEmails: [],
       trackDonation: false,
       trackBible: false,
@@ -420,20 +417,14 @@ async function assignLeaders(groupId) {
   const added = after.filter((e) => !before.includes(e));
 
   for (const email of removed) {
-    await removeRoleContext(email, {
-      role: "leader",
-      groupId: groupId,
-      churchId: currentChurchId,
-    }).catch(() => {});
+    await removeRoleContext(email, { role: "leader", groupId: groupId }).catch(
+      () => {},
+    );
   }
   for (const email of added) {
-    await addRoleContext(email, {
-      role: "leader",
-      groupId: groupId,
-      churchId: currentChurchId,
-    });
+    await addRoleContext(email, { role: "leader", groupId: groupId });
   }
-  await db.collection("groups").doc(groupId).update({ leaderEmails: after });
+  await churchCol("groups").doc(groupId).update({ leaderEmails: after });
   await loadGroups(selectedCategoryId);
   await renderGroupsView();
 }
@@ -441,8 +432,7 @@ async function assignLeaders(groupId) {
 async function deleteGroup(groupId) {
   if (!confirm("이 그룹과 소속 팀원·출석 정보가 함께 삭제됩니다. 계속할까요?"))
     return;
-  const memberSnap = await db
-    .collection("members")
+  const memberSnap = await churchCol("members")
     .where("groupId", "==", groupId)
     .get();
   await Promise.all(memberSnap.docs.map((m) => m.ref.delete()));
@@ -453,11 +443,10 @@ async function deleteGroup(groupId) {
       await removeRoleContext(email, {
         role: "leader",
         groupId: groupId,
-        churchId: currentChurchId,
       }).catch(() => {});
     }
   }
-  await db.collection("groups").doc(groupId).delete();
+  await churchCol("groups").doc(groupId).delete();
   await loadGroups(selectedCategoryId);
   await renderGroupsView();
 }

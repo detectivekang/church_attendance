@@ -33,13 +33,20 @@ function todayStr() {
   const d = new Date();
   return d.toISOString().slice(0, 10);
 }
+/* [수정] 권한 체계 개편: 관리자(플랫폼 최고관리자, 교회에 속하지 않음)
+   -> 운영자(옛 admin, 교회 최상위) -> 그룹장(옛 operator, 카테고리 담당)
+   -> 팀장(leader, 그룹 담당). 내부 role 값("admin"/"operator"/"leader")은
+   기존 코드 전반(권한 체크, roles 문서 등)과의 호환을 위해 그대로 두고,
+   화면에 보이는 이름표만 바꿈. */
 function roleName(r) {
   return (
     {
-      admin: "관리자",
-      operator: "운영자",
+      superadmin: "관리자",
+      admin: "운영자",
+      operator: "그룹장",
       leader: "팀장",
-      none: "승인 대기",
+      none: "권한 없음",
+      church_pending: "교회 승인 대기",
     }[r] || ""
   );
 }
@@ -104,15 +111,6 @@ function getYearOptions() {
   const years = [];
   for (let y = cur; y >= cur - 9; y--) years.push(y);
   return years;
-}
-
-/* =========================================================
-   [신규] 멀티테넌시 - 교회별 출석 문서 ID
-   - 같은 주일 날짜(serviceId)라도 교회마다 다른 문서를 쓰도록
-   churchId를 앞에 붙여 충돌을 막음
-   ========================================================= */
-function attendanceDocId(serviceId) {
-  return `${currentChurchId}_${serviceId}`;
 }
 
 /* =========================================================

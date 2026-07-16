@@ -25,22 +25,26 @@
         <input
           type="email"
           id="loginEmail"
-          placeholder="이메일"
+          placeholder="이메일 *"
           autocomplete="username"
         />
         <input
           type="password"
           id="loginPassword"
-          placeholder="비밀번호"
+          placeholder="비밀번호 * (6자 이상)"
           autocomplete="current-password"
         />
         <div class="login-error" id="loginError"></div>
         <button class="btn" id="loginBtn">로그인</button>
+        <p class="required-note">
+          위 이메일 · 비밀번호는 로그인뿐 아니라 아래 회원가입에도 함께
+          사용됩니다. (<span class="req-mark">*</span> 표시는 필수 입력)
+        </p>
 
-        <!-- [신규] 가입 유형 선택 - 교회 가입(관리자) / 일반 가입(교회 코드 필요) -->
+        <!-- [신규] 가입 유형 선택 - 교회 가입(운영자) / 일반 가입(교회 코드 필요) -->
         <div class="signup-toggle">
           <button class="btn ghost small" id="showChurchSignupBtn">
-            교회 가입 (관리자)
+            교회 가입 (운영자)
           </button>
           <button class="btn ghost small" id="showRegularSignupBtn">
             일반 가입
@@ -49,38 +53,42 @@
 
         <div class="signup-box" id="churchSignupBox" style="display: none">
           <p class="signup-box-desc">
-            새 교회를 등록하고 관리자 권한으로 시작합니다.
+            새 교회를 등록하고 운영자 권한으로 시작합니다.<br />
+            위의 이메일 · 비밀번호도 함께 입력해주세요.
           </p>
           <input
             type="text"
             id="churchSignupName"
-            placeholder="이름"
+            placeholder="이름 *"
             autocomplete="name"
           />
           <input
             type="text"
             id="churchSignupChurchName"
-            placeholder="교회 이름 (예: 서산성결교회)"
+            placeholder="교회 이름 * (예: 서산성결교회)"
           />
+          <div class="login-error" id="churchSignupError"></div>
           <button class="btn" id="churchSignupBtn">교회 가입 완료</button>
         </div>
 
         <div class="signup-box" id="regularSignupBox" style="display: none">
           <p class="signup-box-desc">
-            소속 교회의 관리자에게 받은 교회 코드로 가입합니다.
+            소속 교회의 운영자에게 받은 교회 코드로 가입합니다.<br />
+            위의 이메일 · 비밀번호도 함께 입력해주세요.
           </p>
           <input
             type="text"
             id="regularSignupName"
-            placeholder="이름"
+            placeholder="이름 *"
             autocomplete="name"
           />
           <input
             type="text"
             id="regularSignupCode"
-            placeholder="교회 코드"
+            placeholder="교회 코드 *"
             autocomplete="off"
           />
+          <div class="login-error" id="regularSignupError"></div>
           <button class="btn" id="regularSignupBtn">가입 완료</button>
         </div>
 
@@ -102,9 +110,9 @@
         </div>
 
         <p class="login-hint">
-          이름을 입력해두면 관리자·운영자가 팀장을 지정할 때<br />
+          이름을 입력해두면 운영자·그룹장이 팀장을 지정할 때<br />
           목록에서 이름으로 바로 선택할 수 있습니다.<br />
-          일반 가입 후에는 관리자(또는 운영자·팀장)가 권한을<br />지정해주어야
+          일반 가입 후에는 운영자(또는 그룹장·팀장)가 권한을<br />지정해주어야
           화면이 열립니다.
         </p>
       </div>
@@ -116,7 +124,7 @@
         <div class="cover-inner">
           <div class="brand-logo-wrapper">
             <img src="icon.jpg" alt="교회 로고" class="brand-logo" id="churchLogoImg" />
-            <!-- [신규] 관리자 전용: 교회 로고 업로드 -->
+            <!-- [신규] 운영자 전용: 교회 로고 업로드 -->
             <label class="logo-upload-btn" id="logoUploadLabel" style="display: none">
               로고 변경
               <input
@@ -133,7 +141,7 @@
             id="churchName"
             value=""
           />
-          <!-- [신규] 관리자 전용: 다른 사람 가입시킬 때 공유할 교회 코드 -->
+          <!-- [신규] 운영자 전용: 다른 사람 가입시킬 때 공유할 교회 코드 -->
           <div class="church-code-badge" id="churchCodeBadge" style="display: none">
             교회 코드 <b id="churchCodeText"></b>
             <button class="btn ghost small" id="copyChurchCodeBtn">복사</button>
@@ -175,14 +183,42 @@
           <div class="pending-box">
             <div class="big">권한 승인 대기 중입니다</div>
             <p>
-              로그인 이메일(<b id="pendingEmail"></b>)을 관리자 또는 운영자에게
+              로그인 이메일(<b id="pendingEmail"></b>)을 운영자 또는 그룹장에게
               전달하여<br />
-              운영자 · 팀장 권한을 지정받아 주세요.
+              그룹장 · 팀장 권한을 지정받아 주세요.
             </p>
           </div>
         </div>
 
-        <!-- 관리자: 카테고리 관리 -->
+        <!-- [신규] 교회 승인 대기 화면 (새 교회를 등록한 운영자가 슈퍼관리자의
+             승인을 기다릴 때 노출) -->
+        <div class="mainview" id="main-church-pending">
+          <div class="pending-box">
+            <div class="big">교회 승인 대기 중입니다</div>
+            <p>
+              등록하신 교회(<b id="pendingChurchName"></b>)가 아직
+              관리자의 승인을 기다리고 있습니다.<br />
+              승인이 완료되면 다시 로그인해주세요.
+            </p>
+          </div>
+        </div>
+
+        <!-- [신규] 슈퍼관리자(관리자) 전용 대시보드 -->
+        <div class="mainview" id="main-superadmin">
+          <h2 class="section-title"><span class="idx">01</span> 교회 관리 대시보드</h2>
+          <p class="section-desc">
+            가입한 교회 현황과 승인 대기 중인 교회를 확인하고 승인/거절할 수 있습니다.
+          </p>
+          <div class="summary-cards" id="superadminSummary"></div>
+
+          <h3 class="subsection-title">승인 대기 중인 교회</h3>
+          <div id="superadminPendingList"></div>
+
+          <h3 class="subsection-title">가입한 교회 목록</h3>
+          <div id="superadminChurchList"></div>
+        </div>
+
+        <!-- 운영자: 카테고리 관리 -->
         <div class="mainview" id="main-categories">
           <h2 class="section-title">
             <span class="idx">01</span> 카테고리 관리
@@ -192,14 +228,14 @@
             >
               공지사항 관리
             </button>
-            <!-- [신규] 요금제 상태 (실제 결제 연동 전까지는 관리자가 직접 토글) -->
+            <!-- [신규] 요금제 상태 (실제 결제 연동 전까지는 운영자가 직접 토글) -->
             <button class="btn ghost small plan-badge" id="planToggleBtn">
               요금제: <span id="planStatusText">무료</span>
             </button>
           </h2>
           <p class="section-desc">
-            카테고리를 등록한 뒤, 목록의 '운영자 지정' 버튼으로 가입된 사용자
-            중에서 운영자를 선택하세요. 이름(<b>수정</b>) 버튼으로 이름을 바꿀
+            카테고리를 등록한 뒤, 목록의 '그룹장 지정' 버튼으로 가입된 사용자
+            중에서 그룹장을 선택하세요. 이름(<b>수정</b>) 버튼으로 이름을 바꿀
             수 있습니다.
           </p>
           <div class="add-form">
@@ -213,7 +249,7 @@
           <div id="categoryList"></div>
         </div>
 
-        <!-- 운영자/관리자: 그룹 관리 -->
+        <!-- 그룹장/운영자: 그룹 관리 -->
         <div class="mainview" id="main-groups">
           <h2 class="section-title">
             <span class="idx">02</span> <span id="groupsTitle">그룹 관리</span>
@@ -383,7 +419,7 @@
       </div>
     </div>
 
-    <!-- 유저 선택 모달 (운영자/팀장 지정) -->
+    <!-- 유저 선택 모달 (그룹장/팀장 지정) -->
     <div class="modal-overlay" id="userPickerOverlay" style="display: none">
       <div class="modal-card">
         <div class="modal-title" id="userPickerTitle">담당자 선택</div>
@@ -462,7 +498,7 @@
       </div>
     </div>
 
-    <!-- [신규] 공지사항 관리 모달 (관리자 전용) -->
+    <!-- [신규] 공지사항 관리 모달 (운영자 전용) -->
     <div class="modal-overlay" id="noticeAdminOverlay" style="display: none">
       <div class="modal-card">
         <div class="modal-title">공지사항 관리</div>
@@ -519,6 +555,7 @@
     <script src="js/user-picker.js"></script>
     <script src="js/notices.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/superadmin.js"></script>
     <script src="js/categories.js"></script>
     <script src="js/groups.js"></script>
     <script src="js/members.js"></script>

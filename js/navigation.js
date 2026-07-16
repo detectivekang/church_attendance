@@ -23,10 +23,16 @@ function navigateTo(state, replace) {
 async function restoreNavState(state) {
   if (!currentUser) return;
   if (!state || !state.level) {
+    if (currentRole === "superadmin") return enterSuperadminDashboard();
+    if (currentRole === "church_pending") return showMain("church-pending");
     await initRoleView();
     return;
   }
-  if (state.level === "categories") {
+  if (state.level === "superadmin") {
+    await enterSuperadminDashboard();
+  } else if (state.level === "church-pending") {
+    showMain("church-pending");
+  } else if (state.level === "categories") {
     selectedCategoryId = null;
     selectedGroupId = null;
     currentGroupData = null;

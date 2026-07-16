@@ -213,6 +213,56 @@ body {
   line-height: 1.6;
 }
 
+/* 필수입력 안내 문구 */
+.required-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.req-mark {
+  color: var(--stamp-red);
+  font-weight: 700;
+}
+
+/* 필수인데 비어있는 입력칸 강조 표시 */
+.login-card input.input-invalid {
+  border-color: var(--stamp-red);
+  background: #fdf1ef;
+}
+
+/* 회원가입 유형 토글 (교회 가입 / 일반 가입) */
+.signup-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.signup-toggle .btn {
+  flex: 1;
+}
+.signup-toggle .btn.active {
+  background: var(--cover-navy);
+  color: #f7efda;
+  border-color: var(--cover-navy);
+}
+
+/* 교회 가입 / 일반 가입 입력 박스 */
+.signup-box {
+  text-align: left;
+  margin-top: 10px;
+  padding: 14px 14px 4px;
+  border: 1px dashed var(--paper-line);
+  border-radius: 8px;
+}
+.signup-box-desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0 0 10px;
+  text-align: center;
+}
+
 /* Tabs */
 .tabbar {
   display: flex;
@@ -297,6 +347,43 @@ h2.section-title {
   color: var(--ink-soft);
   font-size: 12.5px;
   margin: 0 0 18px;
+}
+
+/* [신규] 슈퍼관리자 대시보드의 소제목 (승인 대기 / 교회 목록) */
+.subsection-title {
+  font-family: "Noto Serif KR", serif;
+  font-size: 15px;
+  color: var(--cover-navy);
+  margin: 22px 0 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--paper-line);
+}
+
+/* [신규] 교회 코드 배지 (표지에서 운영자에게만 노출) */
+.church-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #f0e9d6;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(184, 147, 95, 0.5);
+  border-radius: 10px;
+  padding: 3px 10px;
+  margin-top: 6px;
+}
+.church-code-badge b {
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+.church-code-badge .btn {
+  padding: 2px 8px;
+  font-size: 10.5px;
+}
+
+/* [신규] 요금제 상태 배지 */
+.plan-badge {
+  margin-left: auto;
 }
 
 /* Controls row */
@@ -731,62 +818,6 @@ button.btn:disabled {
   border-color: var(--gold);
 }
 
-/* [신규] 가입 유형 선택 (교회 가입 / 일반 가입) */
-.signup-toggle {
-  display: flex;
-  gap: 8px;
-  margin: 6px 0;
-}
-.signup-toggle .btn {
-  flex: 1;
-}
-.signup-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 12px;
-  border: 1px dashed var(--paper-line);
-  border-radius: 8px;
-}
-.signup-box-desc {
-  font-size: 12px;
-  color: var(--ink-soft);
-  margin: 0 0 2px;
-}
-
-/* [신규] 교회 로고 업로드 버튼 (관리자 전용) */
-.logo-upload-btn {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--gold);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* [신규] 교회 코드 배지 (관리자 전용 - 일반가입 안내용) */
-.church-code-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
-  font-size: 12px;
-  color: #f7efda;
-  margin: 4px 0;
-}
-.church-code-badge b {
-  font-family: monospace;
-  font-size: 14px;
-  letter-spacing: 0.05em;
-}
-
-/* [신규] 요금제 상태 배지 */
-.plan-badge {
-  margin-left: 10px;
-  vertical-align: middle;
-}
-
 /* [신규] 로그인 화면 - 비밀번호 찾기 */
 .forgot-pw-wrap {
   text-align: center;
@@ -817,11 +848,6 @@ button.btn:disabled {
    [추가] 신규 기능 스타일 (그룹장 다중 지정 / 유저 선택 모달 /
    팀원 수정 / 헌금·성경 관리 / 통계 확장)
    ========================================================= */
-
-/* 회원가입 이름 입력 (로그인 시에는 비워두면 됨) */
-.login-card input#signupName {
-  border-style: dashed;
-}
 
 /* 유저 선택 모달 (운영자/팀장 지정) */
 .modal-overlay {
