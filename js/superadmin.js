@@ -100,7 +100,32 @@ function renderSuperadminDashboard() {
 }
 
 async function approveChurch(churchId) {
+  const church = superadminChurches.find((c) => c.id === churchId);
   await db.collection("churches").doc(churchId).update({ status: "approved" });
+
+  /* [신규] 안전장치 - 가입 시점에 문서 작성이 어떤 이유로든 누락됐더라도,
+     승인하는 순간 신청자(ownerEmail)가 확실히 이 교회의 운영자가 되도록
+     users/{email}.churchId 와 roles/{email} 컨텍스트를 다시 한 번 보정함 */
+  if (church && church.ownerEmail) {
+    try {
+      await db.collection("users").doc(church.ownerEmail).set(
+        { email: church.ownerEmail, churchId },
+        { merge: true },
+      );
+      const roleRef = db.collection("roles").doc(church.ownerEmail);
+      const roleDoc = await roleRef.get();
+      const contexts = extractContexts(roleDoc.exists ? roleDoc.data() : null);
+      if (!contexts.some((c) => c.role === "admin")) {
+        await roleRef.set({ contexts: [...contexts, { role: "admin" }] });
+      }
+    } catch (e) {
+      alert(
+        "교회는 승인되었지만 신청자 권한 보정 중 문제가 발생했습니다: " +
+          e.message,
+      );
+    }
+  }
+
   await loadSuperadminChurches();
   renderSuperadminDashboard();
 }

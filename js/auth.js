@@ -137,8 +137,17 @@ document
         .collection("roles")
         .doc(cred.email)
         .set({ contexts: [{ role: "admin" }] });
+      /* [수정] Firebase가 계정 생성과 거의 동시에 onAuthStateChanged를 발생시켜서,
+         위 문서들을 만들기도 전에 화면이 먼저 라우팅되는 경합이 있었음
+         ("권한 승인 대기" 화면에 멈춰버림). 문서 작성이 모두 끝난 지금 시점
+         기준으로 라우팅을 다시 한 번 명시적으로 실행해 최신 상태를 반영함 */
+      await routeAfterAuth(auth.currentUser);
     } catch (e) {
+      /* [수정] 이미 화면이 앱 화면으로 넘어가 로그인 화면(및 errEl)이
+         가려져 있을 수 있으므로, alert로도 함께 알려서 실패가 조용히
+         묻히지 않도록 함 */
       errEl.textContent = translateAuthError(e);
+      alert("교회 가입 처리 중 문제가 발생했습니다: " + translateAuthError(e));
       btn.disabled = false;
       btn.textContent = "교회 가입 완료";
     }
@@ -184,8 +193,12 @@ document
       await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
         churchId: churchDoc.id,
       });
+      /* [수정] 회원가입 직후 onAuthStateChanged가 문서 작성 전에 먼저
+         라우팅해버리는 경합 방지를 위해 다시 명시적으로 라우팅 */
+      await routeAfterAuth(auth.currentUser);
     } catch (e) {
       errEl.textContent = translateAuthError(e);
+      alert("가입 처리 중 문제가 발생했습니다: " + translateAuthError(e));
     } finally {
       btn.disabled = false;
       btn.textContent = "가입 완료";
@@ -278,54 +291,7 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appScreen").style.display = "block";
     document.getElementById("userEmailLabel").textContent = user.email;
-    const userName = await ensureUserDoc(user);
-    document.getElementById("userEmailLabel").textContent =
-      userName || user.email;
-    selectedCategoryId = null;
-    selectedGroupId = null;
-    currentGroupData = null;
-    await resolveRole(user);
-
-    if (currentRole === "superadmin") {
-      /* [신규] 플랫폼 최고관리자 - 특정 교회 화면이 아니라 전용 대시보드로 진입 */
-      document.getElementById("roleLabel").textContent = roleName(currentRole);
-      document.getElementById("churchName").value = "관리자 대시보드";
-      document.getElementById("churchName").disabled = true;
-      document.getElementById("churchCodeBadge").style.display = "none";
-      document.getElementById("logoUploadLabel").style.display = "none";
-      document.getElementById("planToggleBtn").style.display = "none";
-      renderRoleSwitcher();
-      await enterSuperadminDashboard();
-      return;
-    }
-    if (currentRole === "church_pending") {
-      /* [신규] 교회를 새로 등록했지만 아직 슈퍼관리자 승인 전 */
-      document.getElementById("roleLabel").textContent = roleName(currentRole);
-      document.getElementById("churchName").value =
-        (currentChurchData && currentChurchData.name) || "";
-      document.getElementById("churchName").disabled = true;
-      document.getElementById("churchCodeBadge").style.display = "none";
-      document.getElementById("logoUploadLabel").style.display = "none";
-      renderRoleSwitcher();
-      document.getElementById("pendingChurchName").textContent =
-        (currentChurchData && currentChurchData.name) || "";
-      renderBreadcrumb();
-      showMain("church-pending");
-      navigateTo({ level: "church-pending" }, true);
-      return;
-    }
-
-    /* [신규] 역할 컨텍스트가 1개 이하면(기존 사용자와 동일) 바로 진입,
-       2개 이상(예: A팀 팀장 + B그룹 운영자 동시 보유)이면 역할 선택 화면을 먼저 보여줌 */
-    if (currentRole === "admin" || userContexts.length <= 1) {
-      activeContextIndex = 0;
-      applyActiveContext();
-      await enterAppAfterRoleReady();
-    } else {
-      await loadContextLabels();
-      renderRolePicker();
-      showMain("rolepicker");
-    }
+    await routeAfterAuth(user);
   } else {
     currentUser = null;
     currentRole = null;
@@ -338,6 +304,64 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("appScreen").style.display = "none";
   }
 });
+
+/* [신규] 로그인 상태 진입 시 화면 라우팅.
+   [수정] onAuthStateChanged 안에만 있으면, 회원가입 직후 여기 로직이
+   "교회/역할 문서를 아직 만들기 전" 타이밍에 먼저 실행돼버리는 경합이
+   있었음(Firebase가 계정 생성과 거의 동시에 onAuthStateChanged를 발생시켜서,
+   가입 처리 함수가 교회 문서를 만들기도 전에 이 라우팅이 먼저 돔 -> 역할이
+   없다고 판단해 "권한 승인 대기" 화면이 그대로 굳어버림). 그래서 함수로
+   분리해 회원가입 처리가 모든 문서 작성을 끝낸 뒤 명시적으로 다시
+   호출해 최신 상태로 재라우팅할 수 있게 함. */
+async function routeAfterAuth(user) {
+  const userName = await ensureUserDoc(user);
+  document.getElementById("userEmailLabel").textContent = userName || user.email;
+  selectedCategoryId = null;
+  selectedGroupId = null;
+  currentGroupData = null;
+  await resolveRole(user);
+
+  if (currentRole === "superadmin") {
+    /* [신규] 플랫폼 최고관리자 - 특정 교회 화면이 아니라 전용 대시보드로 진입 */
+    document.getElementById("roleLabel").textContent = roleName(currentRole);
+    document.getElementById("churchName").value = "관리자 대시보드";
+    document.getElementById("churchName").disabled = true;
+    document.getElementById("churchCodeBadge").style.display = "none";
+    document.getElementById("logoUploadLabel").style.display = "none";
+    document.getElementById("planToggleBtn").style.display = "none";
+    renderRoleSwitcher();
+    await enterSuperadminDashboard();
+    return;
+  }
+  if (currentRole === "church_pending") {
+    /* [신규] 교회를 새로 등록했지만 아직 슈퍼관리자 승인 전 */
+    document.getElementById("roleLabel").textContent = roleName(currentRole);
+    document.getElementById("churchName").value =
+      (currentChurchData && currentChurchData.name) || "";
+    document.getElementById("churchName").disabled = true;
+    document.getElementById("churchCodeBadge").style.display = "none";
+    document.getElementById("logoUploadLabel").style.display = "none";
+    renderRoleSwitcher();
+    document.getElementById("pendingChurchName").textContent =
+      (currentChurchData && currentChurchData.name) || "";
+    renderBreadcrumb();
+    showMain("church-pending");
+    navigateTo({ level: "church-pending" }, true);
+    return;
+  }
+
+  /* [신규] 역할 컨텍스트가 1개 이하면(기존 사용자와 동일) 바로 진입,
+     2개 이상(예: A팀 팀장 + B그룹 운영자 동시 보유)이면 역할 선택 화면을 먼저 보여줌 */
+  if (currentRole === "admin" || userContexts.length <= 1) {
+    activeContextIndex = 0;
+    applyActiveContext();
+    await enterAppAfterRoleReady();
+  } else {
+    await loadContextLabels();
+    renderRolePicker();
+    showMain("rolepicker");
+  }
+}
 
 /* [신규] 역할 선택(또는 자동 확정) 이후 공통 진입 절차.
    기존에는 onAuthStateChanged 안에 바로 있던 로직이었으나,
