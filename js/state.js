@@ -5,6 +5,15 @@ let currentUser = null;
 let currentRole = null;
 let roleScope = {};
 
+/* [수정] 회원가입(교회 가입/일반 가입) 진행 중에는 Firebase가 계정 생성
+   직후 바로 쏘는 onAuthStateChanged가 아직 작성되지 않은(교회/역할 문서가
+   없는) 상태를 읽어 "권한없음"/"승인 대기" 화면으로 먼저 라우팅해버리고,
+   그 뒤에 회원가입 코드가 명시적으로 다시 라우팅해도 순서가 뒤바뀌어
+   결국 잘못된 화면에 머무르는 경합이 있었음. 회원가입 함수가 모든 문서
+   작성을 마치고 스스로 라우팅할 때까지 onAuthStateChanged의 자동
+   라우팅을 완전히 건너뛰도록 이 플래그로 막음 */
+let suppressAutoRoute = false;
+
 /* [신규] 멀티테넌트(교회별 데이터 분리) - 로그인한 사용자가 속한 교회 ID와
    그 교회 문서(이름/코드/요금제/승인상태) 캐시. superadmin(관리자)은
    특정 교회에 속하지 않으므로 null로 유지됨 */

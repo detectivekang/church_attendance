@@ -137,43 +137,49 @@ document
       }
 
       btn.textContent = "가입 처리 중...";
-      await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-      /* [수정] 승인 대기 없이 바로 생성되도록 status를 처음부터 "approved"로 저장 */
-      const churchRef = await db.collection("churches").add({
-        name: churchName,
-        nameKey,
-        code: generateChurchCode(),
-        status: "approved",
-        plan: "free",
-        ownerEmail: cred.email,
-        createdAt: Date.now(),
-      });
-      await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
-        churchId: churchRef.id,
-      });
-      /* [수정] 기본 카테고리를 자동으로 만들고, 가입한 본인을 그 카테고리의
-         운영자로 바로 지정해 별도 조작 없이 곧바로 그룹/팀원 관리를 시작할 수 있게 함.
-         (아직 currentChurchId가 설정되기 전이라 churchCol() 대신 churchRef를 직접 사용) */
-      const defaultCategoryRef = await churchRef.collection("categories").add({
-        name: "기본 카테고리",
-        operatorEmail: cred.email,
-        createdAt: Date.now(),
-      });
-      /* 교회 전체 관리자(admin) 역할과 함께, 기본 카테고리의 운영자(operator) 컨텍스트도 부여 */
-      await db
-        .collection("roles")
-        .doc(cred.email)
-        .set({
-          contexts: [
-            { role: "admin" },
-            { role: "operator", categoryId: defaultCategoryRef.id },
-          ],
+      /* [수정] 계정 생성 시점부터 우리가 직접 routeAfterAuth를 호출해
+         최종 라우팅을 마칠 때까지, onAuthStateChanged의 자동 라우팅을 막음 */
+      suppressAutoRoute = true;
+      try {
+        await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
+        /* [수정] 승인 대기 없이 바로 생성되도록 status를 처음부터 "approved"로 저장 */
+        const churchRef = await db.collection("churches").add({
+          name: churchName,
+          nameKey,
+          code: generateChurchCode(),
+          status: "approved",
+          plan: "free",
+          ownerEmail: cred.email,
+          createdAt: Date.now(),
         });
-      /* [수정] Firebase가 계정 생성과 거의 동시에 onAuthStateChanged를 발생시켜서,
-         위 문서들을 만들기도 전에 화면이 먼저 라우팅되는 경합이 있었음.
-         문서 작성이 모두 끝난 지금 시점 기준으로 라우팅을 다시 한 번 명시적으로 실행해
-         최신 상태를 반영함 */
-      await routeAfterAuth(auth.currentUser);
+        await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
+          churchId: churchRef.id,
+        });
+        /* [수정] 기본 카테고리를 자동으로 만들고, 가입한 본인을 그 카테고리의
+           운영자로 바로 지정해 별도 조작 없이 곧바로 그룹/팀원 관리를 시작할 수 있게 함.
+           (아직 currentChurchId가 설정되기 전이라 churchCol() 대신 churchRef를 직접 사용) */
+        const defaultCategoryRef = await churchRef
+          .collection("categories")
+          .add({
+            name: "기본 카테고리",
+            operatorEmail: cred.email,
+            createdAt: Date.now(),
+          });
+        /* 교회 전체 관리자(admin) 역할과 함께, 기본 카테고리의 운영자(operator) 컨텍스트도 부여 */
+        await db
+          .collection("roles")
+          .doc(cred.email)
+          .set({
+            contexts: [
+              { role: "admin" },
+              { role: "operator", categoryId: defaultCategoryRef.id },
+            ],
+          });
+        /* 문서 작성이 모두 끝난 지금 시점 기준으로 라우팅을 명시적으로 실행 */
+        await routeAfterAuth(auth.currentUser);
+      } finally {
+        suppressAutoRoute = false;
+      }
     } catch (e) {
       /* [수정] 이미 화면이 앱 화면으로 넘어가 로그인 화면(및 errEl)이
          가려져 있을 수 있으므로, alert로도 함께 알려서 실패가 조용히
@@ -221,13 +227,17 @@ document
         return;
       }
       btn.textContent = "가입 처리 중...";
-      await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-      await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
-        churchId: churchDoc.id,
-      });
-      /* [수정] 회원가입 직후 onAuthStateChanged가 문서 작성 전에 먼저
-         라우팅해버리는 경합 방지를 위해 다시 명시적으로 라우팅 */
-      await routeAfterAuth(auth.currentUser);
+      suppressAutoRoute = true;
+      try {
+        await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
+        await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
+          churchId: churchDoc.id,
+        });
+        /* 문서 작성이 모두 끝난 뒤 명시적으로 라우팅 */
+        await routeAfterAuth(auth.currentUser);
+      } finally {
+        suppressAutoRoute = false;
+      }
     } catch (e) {
       errEl.textContent = translateAuthError(e);
       alert("가입 처리 중 문제가 발생했습니다: " + translateAuthError(e));
@@ -323,7 +333,12 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appScreen").style.display = "block";
     document.getElementById("userEmailLabel").textContent = user.email;
-    await routeAfterAuth(user);
+    /* [수정] 회원가입 처리 중이면(아직 교회/역할 문서 작성이 끝나지 않았으면)
+       여기서 자동으로 라우팅하지 않음 - 회원가입 함수가 문서 작성을 모두
+       마친 뒤 직접 routeAfterAuth를 호출해 최종 화면을 결정함 */
+    if (!suppressAutoRoute) {
+      await routeAfterAuth(user);
+    }
   } else {
     currentUser = null;
     currentRole = null;
