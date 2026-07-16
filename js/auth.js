@@ -116,14 +116,34 @@ document
     if (!cred) return;
     const btn = document.getElementById("churchSignupBtn");
     btn.disabled = true;
-    btn.textContent = "가입 처리 중...";
+    btn.textContent = "확인 중...";
     try {
+      /* [수정] 슈퍼관리자 승인 절차 제거 - 대신 교회 이름 중복 여부를 먼저 확인함.
+         공백 유무/대소문자 차이로 인한 중복 등록을 막기 위해 nameKey(공백 제거 + 소문자)로 비교 */
+      const churchName = churchNameEl.value.trim();
+      const nameKey = churchName.replace(/\s+/g, "").toLowerCase();
+      const dupSnap = await db
+        .collection("churches")
+        .where("nameKey", "==", nameKey)
+        .limit(1)
+        .get();
+      if (!dupSnap.empty) {
+        errEl.textContent = "이미 등록된 교회 이름입니다.";
+        churchNameEl.classList.add("input-invalid");
+        churchNameEl.focus();
+        btn.disabled = false;
+        btn.textContent = "교회 가입 완료";
+        return;
+      }
+
+      btn.textContent = "가입 처리 중...";
       await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-      /* 새 교회 문서 생성 - 슈퍼관리자(관리자) 승인 전까지는 status:"pending" */
+      /* [수정] 승인 대기 없이 바로 생성되도록 status를 처음부터 "approved"로 저장 */
       const churchRef = await db.collection("churches").add({
-        name: churchNameEl.value.trim(),
+        name: churchName,
+        nameKey,
         code: generateChurchCode(),
-        status: "pending",
+        status: "approved",
         plan: "free",
         ownerEmail: cred.email,
         createdAt: Date.now(),
@@ -131,16 +151,28 @@ document
       await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
         churchId: churchRef.id,
       });
-      /* 이 교회의 최상위 역할(운영자, 내부 role값은 기존과 동일하게 "admin")을
-         미리 지정해둠 - 승인이 나면 바로 운영자로 진입함 */
+      /* [수정] 기본 카테고리를 자동으로 만들고, 가입한 본인을 그 카테고리의
+         운영자로 바로 지정해 별도 조작 없이 곧바로 그룹/팀원 관리를 시작할 수 있게 함.
+         (아직 currentChurchId가 설정되기 전이라 churchCol() 대신 churchRef를 직접 사용) */
+      const defaultCategoryRef = await churchRef.collection("categories").add({
+        name: "기본 카테고리",
+        operatorEmail: cred.email,
+        createdAt: Date.now(),
+      });
+      /* 교회 전체 관리자(admin) 역할과 함께, 기본 카테고리의 운영자(operator) 컨텍스트도 부여 */
       await db
         .collection("roles")
         .doc(cred.email)
-        .set({ contexts: [{ role: "admin" }] });
+        .set({
+          contexts: [
+            { role: "admin" },
+            { role: "operator", categoryId: defaultCategoryRef.id },
+          ],
+        });
       /* [수정] Firebase가 계정 생성과 거의 동시에 onAuthStateChanged를 발생시켜서,
-         위 문서들을 만들기도 전에 화면이 먼저 라우팅되는 경합이 있었음
-         ("권한 승인 대기" 화면에 멈춰버림). 문서 작성이 모두 끝난 지금 시점
-         기준으로 라우팅을 다시 한 번 명시적으로 실행해 최신 상태를 반영함 */
+         위 문서들을 만들기도 전에 화면이 먼저 라우팅되는 경합이 있었음.
+         문서 작성이 모두 끝난 지금 시점 기준으로 라우팅을 다시 한 번 명시적으로 실행해
+         최신 상태를 반영함 */
       await routeAfterAuth(auth.currentUser);
     } catch (e) {
       /* [수정] 이미 화면이 앱 화면으로 넘어가 로그인 화면(및 errEl)이

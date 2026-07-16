@@ -182,10 +182,14 @@
         <div class="mainview" id="main-pending">
           <div class="pending-box">
             <div class="big">권한 승인 대기 중입니다</div>
-            <p>
+            <p id="pendingRegularMsg">
               로그인 이메일(<b id="pendingEmail"></b>)을 운영자 또는 그룹장에게
               전달하여<br />
               그룹장 · 팀장 권한을 지정받아 주세요.
+            </p>
+            <p id="pendingOwnerMsg" style="display: none">
+              교회를 등록이 아직 승인되지 않았습니다.<br />
+	  (처리하는데 하루~이틀이 소요 될수 있습니다.)
             </p>
           </div>
         </div>
@@ -207,14 +211,11 @@
         <div class="mainview" id="main-superadmin">
           <h2 class="section-title"><span class="idx">01</span> 교회 관리 대시보드</h2>
           <p class="section-desc">
-            가입한 교회 현황과 승인 대기 중인 교회를 확인하고 승인/거절할 수 있습니다.
+            등록된 교회 현황과 요금제(무료/유료) 사용 여부를 확인할 수 있습니다.
           </p>
           <div class="summary-cards" id="superadminSummary"></div>
 
-          <h3 class="subsection-title">승인 대기 중인 교회</h3>
-          <div id="superadminPendingList"></div>
-
-          <h3 class="subsection-title">가입한 교회 목록</h3>
+          <h3 class="subsection-title">등록된 교회 목록</h3>
           <div id="superadminChurchList"></div>
         </div>
 

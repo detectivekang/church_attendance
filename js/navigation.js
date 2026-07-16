@@ -147,6 +147,17 @@ async function initRoleView() {
     navigateTo({ level: "groupdetail", groupId: roleScope.groupId }, true);
   } else {
     document.getElementById("pendingEmail").textContent = currentUser.email;
+    /* [신규] "교회 가입(운영자)"으로 들어온 사람이 무슨 이유로든 아직
+       운영자 권한을 못 받은 경우엔, 남에게 권한을 받으라는 안내가 아니라
+       관리자에게 문의하라는 안내를 보여줌 (본인이 곧 운영자가 될 사람이므로) */
+    const isStuckOwner =
+      currentChurchData && currentChurchData.ownerEmail === currentUser.email;
+    document.getElementById("pendingRegularMsg").style.display = isStuckOwner
+      ? "none"
+      : "block";
+    document.getElementById("pendingOwnerMsg").style.display = isStuckOwner
+      ? "block"
+      : "none";
     renderBreadcrumb();
     showMain("pending");
     navigateTo({ level: "pending" }, true);
