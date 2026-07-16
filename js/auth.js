@@ -155,26 +155,18 @@ document
         await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
           churchId: churchRef.id,
         });
-        /* [수정] 기본 카테고리를 자동으로 만들고, 가입한 본인을 그 카테고리의
-           운영자로 바로 지정해 별도 조작 없이 곧바로 그룹/팀원 관리를 시작할 수 있게 함.
-           (아직 currentChurchId가 설정되기 전이라 churchCol() 대신 churchRef를 직접 사용) */
-        const defaultCategoryRef = await churchRef
-          .collection("categories")
-          .add({
-            name: "기본 카테고리",
-            operatorEmail: cred.email,
-            createdAt: Date.now(),
-          });
-        /* 교회 전체 관리자(admin) 역할과 함께, 기본 카테고리의 운영자(operator) 컨텍스트도 부여 */
+        /* [수정] 이전에는 기본 카테고리를 자동 생성하고 그 카테고리의
+           운영자(operator) 컨텍스트까지 함께 부여했는데, roles 문서에 컨텍스트가
+           2개(admin + operator)가 되면서 "역할이 여러 개일 때 먼저 보여주는
+           역할 선택 화면" 분기를 타버렸고, 그 갈림길에서 결국 역할 없음으로
+           오인되어 "권한 승인 대기 중입니다" 화면에 머무는 문제가 있었음.
+           애초에 "admin"(운영자) 역할 하나만으로도 카테고리 관리 권한은 이미
+           충분하므로(로그인 즉시 카테고리 관리 화면으로 진입), 불필요한 카테고리
+           자동 생성과 이중 역할 부여를 없애고 컨텍스트를 1개로 단순화함 */
         await db
           .collection("roles")
           .doc(cred.email)
-          .set({
-            contexts: [
-              { role: "admin" },
-              { role: "operator", categoryId: defaultCategoryRef.id },
-            ],
-          });
+          .set({ contexts: [{ role: "admin" }] });
         /* 문서 작성이 모두 끝난 지금 시점 기준으로 라우팅을 명시적으로 실행 */
         await routeAfterAuth(auth.currentUser);
       } finally {
