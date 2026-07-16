@@ -4,7 +4,8 @@
    함께 포함시킴 - members 컬렉션에는 저장하지 않음)
    ========================================================= */
 async function loadMembers(groupId) {
-  const snap = await churchCol("members")
+  const snap = await db
+    .collection("members")
     .where("groupId", "==", groupId)
     .get();
   let list = snap.docs.map((d) => ({
@@ -95,7 +96,7 @@ function renderMembers() {
       const id = btn.dataset.id;
       if (!confirm("이 팀원을 삭제할까요? 출석 기록도 함께 사라집니다."))
         return;
-      await churchCol("members").doc(id).delete();
+      await db.collection("members").doc(id).delete();
       await loadMembers(selectedGroupId);
       renderMembers();
       renderAttendList();
@@ -130,7 +131,7 @@ function renderMembers() {
       btn.disabled = true;
       btn.textContent = "저장 중...";
       try {
-        await churchCol("members").doc(id).update({ name, birthday });
+        await db.collection("members").doc(id).update({ name, birthday });
         editingMemberId = null;
         await loadMembers(selectedGroupId);
         renderMembers();
@@ -162,10 +163,11 @@ document.getElementById("addMemberBtn").addEventListener("click", async (e) => {
   btn.textContent = "등록 중...";
 
   try {
-    await churchCol("members").add({
+    await db.collection("members").add({
       name,
       birthday,
       groupId: selectedGroupId,
+      churchId: currentChurchId,
       createdAt: Date.now(),
     });
     nameInput.value = "";

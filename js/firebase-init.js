@@ -20,26 +20,8 @@ db.settings({
   experimentalAutoDetectLongPolling: false,
 });
 
-const ADMIN_EMAIL = "kangseabich@naver.com";
+/* [신규] 교회 로고 업로드용 Storage 클라이언트 */
+const storage = firebase.storage();
 
-/* =========================================================
-   [신규] 멀티테넌트 - 교회별 데이터는 churches/{currentChurchId}
-   아래 서브컬렉션(categories/groups/members/attendance/notices)에
-   저장됨. currentChurchId가 정해진 뒤에만 호출해야 함.
-   ========================================================= */
-function churchCol(name) {
-  return db.collection("churches").doc(currentChurchId).collection(name);
-}
-function churchDocRef() {
-  return db.collection("churches").doc(currentChurchId);
-}
-
-/* 새 교회에 발급할 가입 코드 (대문자+숫자 6자리, 헷갈리는 0/O/1/I 제외) */
-function generateChurchCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
+/* [수정] 이제 관리자는 교회마다 따로(churches/{churchId}.adminEmail) 존재하므로
+   전역 고정 ADMIN_EMAIL은 더 이상 사용하지 않음 (auth.js의 resolveRole 참고) */

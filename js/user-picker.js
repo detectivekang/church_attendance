@@ -15,6 +15,10 @@ function userNameOf(email) {
 
 async function loadUsers() {
   try {
+    if (!currentChurchId) {
+      usersList = [];
+      return;
+    }
     const snap = await db
       .collection("users")
       .where("churchId", "==", currentChurchId)

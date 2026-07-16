@@ -3,7 +3,7 @@
    ========================================================= */
 async function enterGroup(groupId, opts = {}) {
   selectedGroupId = groupId;
-  const gdoc = await churchCol("groups").doc(groupId).get();
+  const gdoc = await db.collection("groups").doc(groupId).get();
   if (!gdoc.exists) {
     alert("그룹 정보를 찾을 수 없습니다.");
     return;
@@ -15,7 +15,8 @@ async function enterGroup(groupId, opts = {}) {
     !categoriesCache[currentGroupData.categoryId]
   ) {
     try {
-      const catDoc = await churchCol("categories")
+      const catDoc = await db
+        .collection("categories")
         .doc(currentGroupData.categoryId)
         .get();
       if (catDoc.exists)
@@ -132,7 +133,8 @@ document
     if (!canManageMembers() || !selectedGroupId) return;
     const val = e.target.checked;
     currentGroupData.trackDonation = val;
-    await churchCol("groups")
+    await db
+      .collection("groups")
       .doc(selectedGroupId)
       .update({ trackDonation: val });
     renderAttendList();
@@ -145,7 +147,8 @@ document
     if (!canManageMembers() || !selectedGroupId) return;
     const val = e.target.checked;
     currentGroupData.trackBible = val;
-    await churchCol("groups")
+    await db
+      .collection("groups")
       .doc(selectedGroupId)
       .update({ trackBible: val });
     renderAttendList();
@@ -161,7 +164,8 @@ document
     if (!canManageMembers() || !selectedGroupId) return;
     const val = e.target.checked;
     currentGroupData.includeLeaderAttendance = val;
-    await churchCol("groups")
+    await db
+      .collection("groups")
       .doc(selectedGroupId)
       .update({ includeLeaderAttendance: val });
     editingMemberId = null;

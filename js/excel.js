@@ -119,7 +119,8 @@ document.getElementById("excelUploadSave").addEventListener("click", async () =>
   try {
     /* [수정] 이름+생일을 키로 이 그룹의 기존 팀원과 매칭해서
        있으면 정보만 갱신(merge)하고, 없으면 신규 등록함 (중복 insert 방지) */
-    const existingSnap = await churchCol("members")
+    const existingSnap = await db
+      .collection("members")
       .where("groupId", "==", selectedGroupId)
       .get();
     const existingMap = {};
@@ -134,17 +135,18 @@ document.getElementById("excelUploadSave").addEventListener("click", async () =>
     excelParsedRows.forEach((r) => {
       const existingId = existingMap[memberMergeKey(r.name, r.birthday)];
       if (existingId) {
-        batch.update(churchCol("members").doc(existingId), {
+        batch.update(db.collection("members").doc(existingId), {
           name: r.name,
           birthday: r.birthday || null,
         });
         updateCount++;
       } else {
-        const ref = churchCol("members").doc();
+        const ref = db.collection("members").doc();
         batch.set(ref, {
           name: r.name,
           birthday: r.birthday || null,
           groupId: selectedGroupId,
+          churchId: currentChurchId,
           createdAt: Date.now(),
         });
         insertCount++;
@@ -439,7 +441,7 @@ document
         serviceIds.map((sid) =>
           attendance[sid]
             ? Promise.resolve({ exists: true, data: () => attendance[sid] })
-            : churchCol("attendance").doc(sid).get(),
+            : db.collection("attendance").doc(attendanceDocId(sid)).get(),
         ),
       );
 
@@ -447,12 +449,12 @@ document
       serviceIds.forEach((sid, i) => {
         const existing = fetched[i].exists ? fetched[i].data() : {};
         const patchByMember = attendancePlan.bySerivce[sid];
-        const docPatch = {};
+        const docPatch = { churchId: currentChurchId };
         Object.keys(patchByMember).forEach((memberId) => {
           const cur = normalizeRecord(existing[memberId]);
           docPatch[memberId] = { ...cur, ...patchByMember[memberId] };
         });
-        batch.set(churchCol("attendance").doc(sid), docPatch, {
+        batch.set(db.collection("attendance").doc(attendanceDocId(sid)), docPatch, {
           merge: true,
         });
         // 현재 화면에 로드된 연도라면 메모리 상태도 함께 갱신

@@ -1,222 +1,188 @@
 <!doctype html>
 <html lang="ko">
-<head>
-<meta charset="utf-8" />
-<title>교회 출석부 - 멀티테넌트 마이그레이션 도구 (1회용)</title>
-<style>
-  body { font-family: "Noto Sans KR", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; color: #2b2b28; line-height: 1.6; }
-  h1 { font-size: 20px; }
-  .box { border: 1px solid #dad0af; border-radius: 8px; padding: 18px 20px; margin: 16px 0; background: #fffdf7; }
-  .warn { border-color: #a63d2f; background: #fdf1ef; color: #7c2c21; }
-  label { display: block; font-size: 13px; margin: 10px 0 4px; font-weight: 700; }
-  input { width: 100%; padding: 8px 10px; border: 1px solid #dad0af; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-  button { margin-top: 14px; padding: 10px 18px; border-radius: 6px; border: 1px solid #1b2a41; background: #1b2a41; color: #f7efda; font-weight: 700; cursor: pointer; font-size: 14px; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-  #log { white-space: pre-wrap; font-family: monospace; font-size: 12.5px; background: #1b2a41; color: #d8deea; padding: 14px; border-radius: 8px; margin-top: 16px; max-height: 360px; overflow: auto; }
-  .ok { color: #4c6b4f; }
-</style>
-</head>
-<body>
-  <h1>교회 출석부 - 멀티테넌트 마이그레이션 도구</h1>
-  <div class="box warn">
-    <b>딱 한 번만 실행하는 도구입니다.</b><br />
-    기존에 단일 교회로 저장돼 있던 카테고리/그룹/팀원/출석/공지 데이터를
-    새 멀티테넌트 구조(churches/{교회ID}/...)로 복사합니다.<br />
-    실행 전 앱(index.html)이 이미 새 코드로 배포되어 있어야 하며,
-    <b>kangseabich@naver.com 계정으로만</b> 실행할 수 있습니다.
-  </div>
-
-  <div class="box">
-    <label>로그인 이메일</label>
-    <input id="email" type="email" value="kangseabich@naver.com" />
-    <label>비밀번호</label>
-    <input id="password" type="password" />
-
-    <label>이 교회(기존 데이터)의 운영자로 지정할 이메일</label>
-    <input id="ownerEmail" type="email" placeholder="예: 기존에 회원가입한 담당자 이메일" />
-    <div style="font-size:12px;color:#6b6455;margin-top:4px;">
-      kangseabich@naver.com은 이제 플랫폼 전체를 관리하는 "관리자"가 되어
-      더 이상 개별 교회의 카테고리/그룹 화면(운영자 권한)으로는 들어갈 수 없습니다.
-      그래서 기존 교회를 실제로 운영할 사람의 이메일을 별도로 지정해야 합니다.
-      (이미 가입된 계정이어야 합니다. 나중에 슈퍼관리자 대시보드에서 바꿀 필요는 없습니다.)
-    </div>
-
-    <label>교회 이름 (비워두면 기존 설정값 또는 "서산성결교회" 사용)</label>
-    <input id="churchName" type="text" placeholder="서산성결교회" />
-
-    <button id="runBtn">마이그레이션 실행</button>
-  </div>
-
-  <div id="log" style="display:none"></div>
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAwuAjo1_gjvXVU3_pINJPdzqjTlTJDYts",
-      authDomain: "churchattendance-398c4.firebaseapp.com",
-      projectId: "churchattendance-398c4",
-      storageBucket: "churchattendance-398c4.firebasestorage.app",
-      messagingSenderId: "867359683786",
-      appId: "1:867359683786:web:e3536070246f9944e57033",
-      measurementId: "G-N96QSV5EPL",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const ADMIN_EMAIL = "kangseabich@naver.com";
-
-    const logEl = document.getElementById("log");
-    function log(msg, cls) {
-      logEl.style.display = "block";
-      const line = document.createElement("div");
-      if (cls) line.className = cls;
-      line.textContent = msg;
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
+  <head>
+    <meta charset="UTF-8" />
+    <title>[1회용] 교회 데이터 마이그레이션</title>
+    <style>
+      body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+      button { padding: 10px 16px; font-size: 15px; cursor: pointer; }
+      #log { white-space: pre-wrap; background: #f5f5f5; padding: 12px; margin-top: 16px; font-size: 13px; max-height: 400px; overflow-y: auto; border-radius: 6px; }
+      .warn { color: #b00; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h2>⚠️ 1회용 마이그레이션 페이지</h2>
+    <p class="warn">
+      이 페이지는 기존 서산성결교회 데이터를 새 멀티테넌시(다중 교회) 구조로
+      옮기는 용도입니다. 실행 전 반드시 Firestore 규칙을 아래처럼 임시로
+      완화해두세요 (마이그레이션 끝나면 즉시 최종 firestore.rules로 교체):
+    </p>
+    <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
+  }
+}</pre>
+    <p>관리자 계정(kangseabich@naver.com)으로 로그인된 상태여야 합니다.</p>
+    <p id="authStatus">로그인 확인 중...</p>
+    <button id="runBtn" disabled>마이그레이션 실행</button>
+    <div id="log"></div>
 
-    function generateChurchCode() {
-      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-      let code = "";
-      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-      return code;
-    }
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script>
+      const LEGACY_ADMIN_EMAIL = "kangseabich@naver.com";
+      const logEl = document.getElementById("log");
+      const authStatusEl = document.getElementById("authStatus");
+      const runBtn = document.getElementById("runBtn");
 
-    async function copyCollection(fromCol, toCol, label) {
-      const snap = await db.collection(fromCol).get();
-      if (snap.empty) {
-        log(`- ${label}: 기존 데이터 없음 (건너뜀)`);
-        return 0;
-      }
-      const docs = snap.docs;
-      const batchSize = 400;
-      for (let i = 0; i < docs.length; i += batchSize) {
-        const batch = db.batch();
-        docs.slice(i, i + batchSize).forEach((d) => {
-          /* 문서 ID를 그대로 유지 - roles 문서의 groupId/categoryId 참조가
-             깨지지 않도록 하기 위함 */
-          batch.set(toCol.doc(d.id), d.data());
-        });
-        await batch.commit();
-      }
-      log(`- ${label}: ${docs.length}건 복사 완료`, "ok");
-      return docs.length;
-    }
-
-    document.getElementById("runBtn").addEventListener("click", async () => {
-      const btn = document.getElementById("runBtn");
-      btn.disabled = true;
-      logEl.innerHTML = "";
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-      const ownerEmail = document.getElementById("ownerEmail").value.trim();
-      const churchNameInput = document.getElementById("churchName").value.trim();
-
-      if (email !== ADMIN_EMAIL) {
-        log("이 도구는 kangseabich@naver.com 계정으로만 실행할 수 있습니다.", "warn");
-        btn.disabled = false;
-        return;
-      }
-      if (!ownerEmail) {
-        log("교회 운영자로 지정할 이메일을 입력해주세요.", "warn");
-        btn.disabled = false;
-        return;
+      function log(msg) {
+        logEl.textContent += msg + "\n";
+        logEl.scrollTop = logEl.scrollHeight;
       }
 
-      try {
-        log("로그인 중...");
-        await auth.signInWithEmailAndPassword(email, password);
-        log("로그인 성공", "ok");
-
-        const existingChurches = await db.collection("churches").get();
-        if (!existingChurches.empty) {
-          log(
-            `이미 churches 컬렉션에 ${existingChurches.size}개의 교회가 있습니다. 중복 실행 방지를 위해 중단합니다. (이미 마이그레이션을 실행했다면 정상입니다)`,
-            "warn",
-          );
-          btn.disabled = false;
-          return;
+      auth.onAuthStateChanged((user) => {
+        if (user && user.email === LEGACY_ADMIN_EMAIL) {
+          authStatusEl.textContent = `로그인됨: ${user.email} (실행 가능)`;
+          runBtn.disabled = false;
+        } else if (user) {
+          authStatusEl.textContent = `로그인됨: ${user.email} - 관리자 계정이 아닙니다.`;
+        } else {
+          authStatusEl.textContent =
+            "로그인되어 있지 않습니다. 앱(index.html)에서 관리자로 로그인한 뒤 이 페이지를 여세요.";
         }
+      });
 
-        let name = churchNameInput;
-        if (!name) {
+      function generateChurchCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 6; i++) {
+          code += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return code;
+      }
+
+      async function generateUniqueChurchCode() {
+        for (let i = 0; i < 10; i++) {
+          const code = generateChurchCode();
+          const doc = await db.collection("churches").doc(code).get();
+          if (!doc.exists) return code;
+        }
+        throw new Error("교회 코드 생성 실패");
+      }
+
+      runBtn.addEventListener("click", async () => {
+        runBtn.disabled = true;
+        log("=== 마이그레이션 시작 ===");
+        try {
+          const code = await generateUniqueChurchCode();
+          log(`1. 교회 코드 발급: ${code}`);
+
+          let churchName = "서산성결교회";
           try {
             const settingsDoc = await db.collection("settings").doc("church").get();
-            name = settingsDoc.exists && settingsDoc.data().name
-              ? settingsDoc.data().name.replace(/\s+/g, "")
-              : "서산성결교회";
-          } catch (e) {
-            name = "서산성결교회";
-          }
-        }
+            if (settingsDoc.exists && settingsDoc.data().name) {
+              churchName = settingsDoc.data().name;
+            }
+          } catch (e) {}
 
-        log(`새 교회 문서 생성 중... (이름: ${name})`);
-        const churchRef = await db.collection("churches").add({
-          name,
-          code: generateChurchCode(),
-          status: "approved",
-          plan: "free",
-          ownerEmail,
-          createdAt: Date.now(),
-          migratedLegacy: true,
-        });
-        const churchId = churchRef.id;
-        log(`교회 생성 완료 (ID: ${churchId})`, "ok");
-
-        log("기존 데이터 복사 시작...");
-        await copyCollection("categories", churchRef.collection("categories"), "카테고리");
-        await copyCollection("groups", churchRef.collection("groups"), "그룹");
-        await copyCollection("members", churchRef.collection("members"), "팀원");
-        await copyCollection("attendance", churchRef.collection("attendance"), "출석");
-        await copyCollection("notices", churchRef.collection("notices"), "공지사항");
-
-        log("가입된 사용자들을 이 교회 소속으로 연결 중...");
-        const usersSnap = await db.collection("users").get();
-        const userDocs = usersSnap.docs.filter((d) => d.id !== ADMIN_EMAIL);
-        const batchSize = 400;
-        for (let i = 0; i < userDocs.length; i += batchSize) {
-          const batch = db.batch();
-          userDocs.slice(i, i + batchSize).forEach((d) => {
-            batch.update(d.ref, { churchId });
+          await db.collection("churches").doc(code).set({
+            name: churchName,
+            logoUrl: null,
+            plan: "free",
+            adminEmail: LEGACY_ADMIN_EMAIL,
+            createdAt: Date.now(),
           });
-          await batch.commit();
+          log(`2. churches/${code} 문서 생성 (이름: ${churchName})`);
+
+          const catSnap = await db.collection("categories").get();
+          for (const d of catSnap.docs) await d.ref.update({ churchId: code });
+          log(`3. categories ${catSnap.size}건에 churchId 반영`);
+
+          const groupSnap = await db.collection("groups").get();
+          for (const d of groupSnap.docs) await d.ref.update({ churchId: code });
+          log(`4. groups ${groupSnap.size}건에 churchId 반영`);
+
+          const memberSnap = await db.collection("members").get();
+          for (const d of memberSnap.docs) await d.ref.update({ churchId: code });
+          log(`5. members ${memberSnap.size}건에 churchId 반영`);
+
+          const attSnap = await db.collection("attendance").get();
+          let attCount = 0;
+          for (const d of attSnap.docs) {
+            const data = d.data();
+            await db
+              .collection("attendance")
+              .doc(`${code}_${d.id}`)
+              .set({ ...data, churchId: code });
+            await d.ref.delete();
+            attCount++;
+          }
+          log(`6. attendance ${attCount}건을 '${code}_원래ID'로 이전`);
+
+          const usersSnap = await db.collection("users").get();
+          let userCount = 0;
+          for (const d of usersSnap.docs) {
+            if (!d.data().churchId) {
+              await d.ref.update({ churchId: code });
+              userCount++;
+            }
+          }
+          log(`7. users ${userCount}건에 churchId 반영`);
+
+          const rolesSnap = await db.collection("roles").get();
+          let roleCount = 0;
+          for (const d of rolesSnap.docs) {
+            const data = d.data();
+            let contexts = Array.isArray(data.contexts)
+              ? data.contexts
+              : data.role
+                ? [{ role: data.role, groupId: data.groupId || null, categoryId: data.categoryId || null }]
+                : [];
+            contexts = contexts.map((c) => ({ ...c, churchId: code }));
+            const churchIds = [...new Set(contexts.map((c) => c.churchId).filter(Boolean))];
+            const approvedChurchIds = [
+              ...new Set(
+                contexts.filter((c) => c.role && c.role !== "none").map((c) => c.churchId).filter(Boolean),
+              ),
+            ];
+            await d.ref.set({ contexts, churchIds, approvedChurchIds }, { merge: false });
+            roleCount++;
+          }
+          log(`8. roles ${roleCount}건 변환 (churchId 포함)`);
+
+          // 기존 관리자는 roles 문서 자체가 없었을 수 있음(구코드가 이메일만 보고 admin 취급했으므로) - 보정
+          const adminRef = db.collection("roles").doc(LEGACY_ADMIN_EMAIL);
+          const adminDoc = await adminRef.get();
+          let adminContexts = adminDoc.exists ? adminDoc.data().contexts || [] : [];
+          if (!adminContexts.some((c) => c.role === "admin" && c.churchId === code)) {
+            adminContexts = [...adminContexts, { role: "admin", churchId: code }];
+            const churchIds = [...new Set(adminContexts.map((c) => c.churchId).filter(Boolean))];
+            const approvedChurchIds = [
+              ...new Set(
+                adminContexts.filter((c) => c.role && c.role !== "none").map((c) => c.churchId).filter(Boolean),
+              ),
+            ];
+            await adminRef.set({ contexts: adminContexts, churchIds, approvedChurchIds }, { merge: false });
+            log(`9. 관리자(${LEGACY_ADMIN_EMAIL}) admin 컨텍스트 보정 완료`);
+          } else {
+            log(`9. 관리자 컨텍스트 이미 존재, 보정 불필요`);
+          }
+
+          log(`=== 마이그레이션 완료 ===`);
+          log(`교회 코드: ${code}  (일반가입 안내용으로 기록해두세요)`);
+          alert(`마이그레이션 완료!\n교회 코드: ${code}\n\n이제 Firestore 규칙을 최종본으로 교체하세요.`);
+        } catch (err) {
+          log("!! 오류 발생: " + err.message);
+          alert("마이그레이션 중 오류: " + err.message);
+        } finally {
+          runBtn.disabled = false;
         }
-        log(`- 사용자 ${userDocs.length}명을 교회에 연결했습니다.`, "ok");
-
-        log(`운영자 권한(${ownerEmail}) 지정 중...`);
-        const roleRef = db.collection("roles").doc(ownerEmail);
-        await db.runTransaction(async (t) => {
-          const doc = await t.get(roleRef);
-          let contexts = [];
-          if (doc.exists && Array.isArray(doc.data().contexts)) {
-            contexts = doc.data().contexts;
-          } else if (doc.exists && doc.data().role) {
-            contexts = [{ role: doc.data().role, groupId: doc.data().groupId || null, categoryId: doc.data().categoryId || null }];
-          }
-          if (!contexts.some((c) => c.role === "admin")) {
-            contexts = [...contexts, { role: "admin" }];
-          }
-          t.set(roleRef, { contexts });
-        });
-        log("운영자 권한 지정 완료", "ok");
-
-        log("");
-        log("마이그레이션이 모두 완료되었습니다!", "ok");
-        log(
-          `- 교회 코드: ${(await churchRef.get()).data().code} (다른 사람 가입시킬 때 사용)`,
-        );
-        log(`- ${ownerEmail} 계정으로 로그인하면 운영자로 바로 진입합니다.`);
-        log(
-          "- 기존 최상위 categories/groups/members/attendance/notices/settings 컬렉션은 그대로 남아있습니다 (더 이상 앱에서 사용하지 않음). 정상 동작을 확인한 뒤 Firebase 콘솔에서 직접 삭제하셔도 됩니다.",
-        );
-      } catch (e) {
-        log("오류 발생: " + e.message, "warn");
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  </script>
-</body>
+      });
+    </script>
+  </body>
 </html>

@@ -1,7 +1,7 @@
 async function loadAttendanceForServices() {
   attendance = {};
   const results = await Promise.all(
-    services.map((s) => churchCol("attendance").doc(s.id).get()),
+    services.map((s) => db.collection("attendance").doc(attendanceDocId(s.id)).get()),
   );
   services.forEach((s, i) => {
     attendance[s.id] = results[i].exists ? results[i].data() : {};
@@ -36,9 +36,10 @@ async function updateRecord(serviceId, memberId, patch) {
   const cur = normalizeRecord(att[memberId]);
   const next = { ...cur, ...patch };
   att[memberId] = next;
-  await churchCol("attendance")
-    .doc(serviceId)
-    .set({ [memberId]: next }, { merge: true });
+  await db
+    .collection("attendance")
+    .doc(attendanceDocId(serviceId))
+    .set({ [memberId]: next, churchId: currentChurchId }, { merge: true });
   return next;
 }
 

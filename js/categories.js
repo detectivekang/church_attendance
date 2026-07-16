@@ -2,7 +2,10 @@
    카테고리 관리
    ========================================================= */
 async function loadCategories() {
-  const snap = await churchCol("categories").get();
+  const snap = await db
+    .collection("categories")
+    .where("churchId", "==", currentChurchId)
+    .get();
   categories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   categoriesCache = Object.fromEntries(categories.map((c) => [c.id, c]));
 }
@@ -18,7 +21,10 @@ async function renderCategoriesView() {
     return;
   }
 
-  const groupSnap = await churchCol("groups").get();
+  const groupSnap = await db
+    .collection("groups")
+    .where("churchId", "==", currentChurchId)
+    .get();
   const groupCountMap = {};
   groupSnap.docs.forEach((d) => {
     const gc = d.data().categoryId;
@@ -47,13 +53,13 @@ async function renderCategoriesView() {
     card.innerHTML = `
       <div class="list-card-main" data-id="${c.id}">
         <div class="list-card-title">${escapeHtml(c.name)}</div>
-        <div class="list-card-sub">그룹장: ${c.operatorEmail ? escapeHtml(userLabel(c.operatorEmail)) : "미지정"} · 그룹 ${groupCountMap[c.id] || 0}개</div>
+        <div class="list-card-sub">운영자: ${c.operatorEmail ? escapeHtml(userLabel(c.operatorEmail)) : "미지정"} · 그룹 ${groupCountMap[c.id] || 0}개</div>
       </div>
       <div class="list-card-actions">
         ${
           canManageCategories()
             ? `<button class="btn ghost small" data-edit="${c.id}">수정</button>
-        <button class="btn ghost small" data-assign="${c.id}">그룹장 지정</button>
+        <button class="btn ghost small" data-assign="${c.id}">운영자 지정</button>
         <button class="btn danger" data-del="${c.id}">삭제</button>`
             : ""
         }
@@ -109,7 +115,7 @@ async function renderCategoriesView() {
       btn.disabled = true;
       btn.textContent = "저장 중...";
       try {
-        await churchCol("categories").doc(id).update({ name });
+        await db.collection("categories").doc(id).update({ name });
         editingCategoryId = null;
         await loadCategories();
         await renderCategoriesView();
@@ -139,9 +145,10 @@ document
     btn.textContent = "등록 중...";
 
     try {
-      await churchCol("categories").add({
+      await db.collection("categories").add({
         name,
         operatorEmail: null,
+        churchId: currentChurchId,
         createdAt: Date.now(),
       });
       nameInput.value = "";
@@ -158,8 +165,8 @@ document
 async function assignOperator(catId) {
   const cat = categories.find((c) => c.id === catId);
   const result = await openUserPicker({
-    title: "그룹장 지정",
-    sub: "가입된 사용자 중 이 카테고리의 그룹장을 선택하세요. (선택 해제 시 지정 해제)",
+    title: "운영자 지정",
+    sub: "가입된 사용자 중 이 카테고리의 운영자를 선택하세요. (선택 해제 시 지정 해제)",
     multi: false,
     selected: cat.operatorEmail ? [cat.operatorEmail] : [],
   });
@@ -169,11 +176,19 @@ async function assignOperator(catId) {
     await removeRoleContext(cat.operatorEmail, {
       role: "operator",
       categoryId: catId,
+      churchId: currentChurchId,
     }).catch(() => {});
   }
-  await churchCol("categories").doc(catId).update({ operatorEmail: trimmed });
+  await db
+    .collection("categories")
+    .doc(catId)
+    .update({ operatorEmail: trimmed });
   if (trimmed) {
-    await addRoleContext(trimmed, { role: "operator", categoryId: catId });
+    await addRoleContext(trimmed, {
+      role: "operator",
+      categoryId: catId,
+      churchId: currentChurchId,
+    });
   }
   await loadCategories();
   await renderCategoriesView();
@@ -187,12 +202,14 @@ async function deleteCategory(catId) {
   )
     return;
   const cat = categories.find((c) => c.id === catId);
-  const groupSnap = await churchCol("groups")
+  const groupSnap = await db
+    .collection("groups")
     .where("categoryId", "==", catId)
     .get();
   for (const gdoc of groupSnap.docs) {
     const g = gdoc.data();
-    const memberSnap = await churchCol("members")
+    const memberSnap = await db
+      .collection("members")
       .where("groupId", "==", gdoc.id)
       .get();
     await Promise.all(memberSnap.docs.map((m) => m.ref.delete()));
@@ -201,6 +218,7 @@ async function deleteCategory(catId) {
       await removeRoleContext(email, {
         role: "leader",
         groupId: gdoc.id,
+        churchId: currentChurchId,
       }).catch(() => {});
     }
     await gdoc.ref.delete();
@@ -209,8 +227,9 @@ async function deleteCategory(catId) {
     await removeRoleContext(cat.operatorEmail, {
       role: "operator",
       categoryId: catId,
+      churchId: currentChurchId,
     }).catch(() => {});
-  await churchCol("categories").doc(catId).delete();
+  await db.collection("categories").doc(catId).delete();
   await loadCategories();
   await renderCategoriesView();
 }
