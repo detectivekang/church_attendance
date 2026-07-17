@@ -1,6 +1,12 @@
 /* =========================================================
    카테고리 관리
    ========================================================= */
+function normalizeOperatorEmails(c) {
+  if (Array.isArray(c.operatorEmails)) return c.operatorEmails.filter(Boolean);
+  if (c.operatorEmail) return [c.operatorEmail];
+  return [];
+}
+
 async function loadCategories() {
   const snap = await churchCol("categories").get();
   categories = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -44,10 +50,14 @@ async function renderCategoriesView() {
       return;
     }
 
+    const operatorEmails = normalizeOperatorEmails(c);
+    const operatorLabel = operatorEmails.length
+      ? operatorEmails.map((e) => escapeHtml(userNameOf(e))).join(", ")
+      : "미지정";
     card.innerHTML = `
       <div class="list-card-main" data-id="${c.id}">
         <div class="list-card-title">${escapeHtml(c.name)}</div>
-        <div class="list-card-sub">그룹장: ${c.operatorEmail ? escapeHtml(userLabel(c.operatorEmail)) : "미지정"} · 그룹 ${groupCountMap[c.id] || 0}개</div>
+        <div class="list-card-sub">그룹장: ${operatorLabel} · 그룹 ${groupCountMap[c.id] || 0}개</div>
       </div>
       <div class="list-card-actions">
         ${
@@ -75,7 +85,7 @@ async function renderCategoriesView() {
   list.querySelectorAll("[data-assign]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      assignOperator(btn.dataset.assign);
+      assignOperators(btn.dataset.assign);
     });
   });
   list.querySelectorAll("[data-del]").forEach((btn) => {
@@ -141,7 +151,7 @@ document
     try {
       await churchCol("categories").add({
         name,
-        operatorEmail: null,
+        operatorEmails: [],
         createdAt: Date.now(),
       });
       nameInput.value = "";
@@ -155,26 +165,33 @@ document
     }
   });
 
-async function assignOperator(catId) {
+async function assignOperators(catId) {
   const cat = categories.find((c) => c.id === catId);
+  const before = normalizeOperatorEmails(cat);
   const result = await openUserPicker({
     title: "그룹장 지정",
-    sub: "가입된 사용자 중 이 카테고리의 그룹장을 선택하세요. (선택 해제 시 지정 해제)",
-    multi: false,
-    selected: cat.operatorEmail ? [cat.operatorEmail] : [],
+    sub: "가입된 사용자 중 이 카테고리의 그룹장을 선택하세요. (여러 명 선택 가능)",
+    multi: true,
+    selected: before,
   });
   if (result === null) return;
-  const trimmed = result[0] || null;
-  if (cat.operatorEmail && cat.operatorEmail !== trimmed) {
-    await removeRoleContext(cat.operatorEmail, {
+  const after = result;
+
+  const removed = before.filter((e) => !after.includes(e));
+  const added = after.filter((e) => !before.includes(e));
+
+  for (const email of removed) {
+    await removeRoleContext(email, {
       role: "operator",
       categoryId: catId,
     }).catch(() => {});
   }
-  await churchCol("categories").doc(catId).update({ operatorEmail: trimmed });
-  if (trimmed) {
-    await addRoleContext(trimmed, { role: "operator", categoryId: catId });
+  for (const email of added) {
+    await addRoleContext(email, { role: "operator", categoryId: catId });
   }
+  await churchCol("categories")
+    .doc(catId)
+    .update({ operatorEmails: after, operatorEmail: after[0] || null });
   await loadCategories();
   await renderCategoriesView();
 }
@@ -205,11 +222,15 @@ async function deleteCategory(catId) {
     }
     await gdoc.ref.delete();
   }
-  if (cat && cat.operatorEmail)
-    await removeRoleContext(cat.operatorEmail, {
-      role: "operator",
-      categoryId: catId,
-    }).catch(() => {});
+  if (cat) {
+    const operatorEmails = normalizeOperatorEmails(cat);
+    for (const email of operatorEmails) {
+      await removeRoleContext(email, {
+        role: "operator",
+        categoryId: catId,
+      }).catch(() => {});
+    }
+  }
   await churchCol("categories").doc(catId).delete();
   await loadCategories();
   await renderCategoriesView();

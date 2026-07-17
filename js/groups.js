@@ -65,7 +65,7 @@ async function renderGroupsView() {
 
     const leaderEmails = normalizeLeaderEmails(g);
     const leaderLabel = leaderEmails.length
-      ? leaderEmails.map((e) => escapeHtml(userLabel(e))).join(", ")
+      ? leaderEmails.map((e) => escapeHtml(userNameOf(e))).join(", ")
       : "미지정";
     card.innerHTML = `
       <div class="list-card-main" data-id="${g.id}">

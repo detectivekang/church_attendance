@@ -51,12 +51,15 @@ async function updateRecord(serviceId, memberId, patch) {
    ========================================================= */
 function renderAttendList() {
   const container = document.getElementById("attendList");
+  const bulkToolbar = document.getElementById("attendBulkToolbar");
   container.innerHTML = "";
+  const editable = canEditAttendance();
+  bulkToolbar.style.display =
+    editable && members.length > 0 ? "flex" : "none";
   if (members.length === 0) {
     container.innerHTML = '<div class="empty">등록된 팀원이 없습니다.</div>';
     return;
   }
-  const editable = canEditAttendance();
   const showDonation = !!(currentGroupData && currentGroupData.trackDonation);
   const showBible = !!(currentGroupData && currentGroupData.trackBible);
 
@@ -133,3 +136,34 @@ function renderAttendList() {
     });
   });
 }
+
+/* [신규] 팀장 전용 - 현재 선택된 예배의 전체 팀원 출석을 한 번에
+   체크/해제. 팀원마다 개별 저장하지 않고 한 번의 쓰기로 처리 */
+async function bulkUpdateAttendance(present) {
+  if (!canEditAttendance() || members.length === 0) return;
+  const serviceId = currentServiceId;
+  const att = attendance[serviceId] || (attendance[serviceId] = {});
+  const patch = {};
+  members.forEach((m) => {
+    const next = { ...normalizeRecord(att[m.id]), present };
+    att[m.id] = next;
+    patch[m.id] = next;
+  });
+  await churchCol("attendance").doc(serviceId).set(patch, { merge: true });
+  renderAttendList();
+  renderStats();
+}
+
+document.getElementById("attendCheckAllBtn").addEventListener("click", () => {
+  if (!canEditAttendance() || members.length === 0) return;
+  if (!confirm(`${members.length}명 전체를 출석 처리할까요?`)) return;
+  bulkUpdateAttendance(true);
+});
+
+document
+  .getElementById("attendUncheckAllBtn")
+  .addEventListener("click", () => {
+    if (!canEditAttendance() || members.length === 0) return;
+    if (!confirm("전체 팀원의 출석을 해제할까요?")) return;
+    bulkUpdateAttendance(false);
+  });

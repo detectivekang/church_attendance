@@ -32,7 +32,12 @@ async function restoreNavState(state) {
     await enterSuperadminDashboard();
   } else if (state.level === "church-pending") {
     showMain("church-pending");
+  } else if (state.level === "admin-dashboard") {
+    await setAdminTab("dashboard", { skipHistory: true });
+  } else if (state.level === "church-settings") {
+    await setAdminTab("settings", { skipHistory: true });
   } else if (state.level === "categories") {
+    setAdminTabActiveMarker("groups");
     selectedCategoryId = null;
     selectedGroupId = null;
     currentGroupData = null;
@@ -40,6 +45,7 @@ async function restoreNavState(state) {
     await renderCategoriesView();
     showMain("categories");
   } else if (state.level === "groups") {
+    setAdminTabActiveMarker("groups");
     selectedCategoryId = state.categoryId;
     selectedGroupId = null;
     currentGroupData = null;
@@ -48,6 +54,7 @@ async function restoreNavState(state) {
     await renderGroupsView();
     showMain("groups");
   } else if (state.level === "groupdetail") {
+    setAdminTabActiveMarker("groups");
     await enterGroup(state.groupId, { skipHistory: true });
   } else {
     await initRoleView();
@@ -122,12 +129,10 @@ async function initRoleView() {
   selectedGroupId = null;
 
   if (currentRole === "admin") {
-    await loadCategories();
-    renderBreadcrumb();
-    await renderCategoriesView();
-    showMain("categories");
-    navigateTo({ level: "categories" }, true);
+    document.getElementById("adminTabbar").style.display = "flex";
+    await setAdminTab("dashboard", { replace: true });
   } else if (currentRole === "operator") {
+    document.getElementById("adminTabbar").style.display = "none";
     selectedCategoryId = roleScope.categoryId;
     try {
       const catDoc = await db
@@ -143,9 +148,11 @@ async function initRoleView() {
     showMain("groups");
     navigateTo({ level: "groups", categoryId: selectedCategoryId }, true);
   } else if (currentRole === "leader") {
+    document.getElementById("adminTabbar").style.display = "none";
     await enterGroup(roleScope.groupId, { skipHistory: true });
     navigateTo({ level: "groupdetail", groupId: roleScope.groupId }, true);
   } else {
+    document.getElementById("adminTabbar").style.display = "none";
     document.getElementById("pendingEmail").textContent = currentUser.email;
     /* [신규] "교회 가입(운영자)"으로 들어온 사람이 무슨 이유로든 아직
        운영자 권한을 못 받은 경우엔, 남에게 권한을 받으라는 안내가 아니라
@@ -162,6 +169,57 @@ async function initRoleView() {
     showMain("pending");
     navigateTo({ level: "pending" }, true);
   }
+}
+
+/* =========================================================
+   [신규] 운영자 전용 상단 탭 (대시보드 / 그룹 관리 / 교회 설정)
+   ========================================================= */
+function setAdminTabActiveMarker(tab) {
+  document.querySelectorAll(".admin-tab").forEach((b) => {
+    b.classList.toggle("active", b.dataset.adminTab === tab);
+  });
+  document.getElementById("breadcrumb").style.display =
+    tab === "groups" ? "" : "none";
+}
+
+async function setAdminTab(tab, opts = {}) {
+  setAdminTabActiveMarker(tab);
+
+  if (tab === "groups") {
+    selectedCategoryId = null;
+    selectedGroupId = null;
+    currentGroupData = null;
+    await loadCategories();
+    renderBreadcrumb();
+    await renderCategoriesView();
+    showMain("categories");
+    navigateTo({ level: "categories" }, !!opts.replace);
+  } else if (tab === "dashboard") {
+    await renderAdminDashboard();
+    showMain("admin-dashboard");
+    navigateTo({ level: "admin-dashboard" }, !!opts.replace);
+  } else if (tab === "settings") {
+    await renderChurchSettingsForm();
+    showMain("church-settings");
+    navigateTo({ level: "church-settings" }, !!opts.replace);
+  }
+}
+
+document.querySelectorAll(".admin-tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (currentRole !== "admin") return;
+    setAdminTab(btn.dataset.adminTab);
+  });
+});
+
+/* [신규] 대시보드의 그룹별 상세 현황에서 특정 그룹을 클릭했을 때
+   '그룹 관리' 탭으로 전환하며 해당 그룹 상세로 바로 진입 */
+async function goToGroupFromDashboard(groupId, categoryId) {
+  setAdminTabActiveMarker("groups");
+  selectedCategoryId = categoryId;
+  await loadCategories();
+  await loadGroups(categoryId);
+  await enterGroup(groupId);
 }
 
 /* =========================================================

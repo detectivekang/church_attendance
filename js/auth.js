@@ -75,6 +75,9 @@ function markRequired(fields) {
   "loginPassword",
   "churchSignupName",
   "churchSignupChurchName",
+  "churchSignupAddress",
+  "churchSignupAddressDetail",
+  "churchSignupDenominationEtc",
   "regularSignupName",
   "regularSignupCode",
 ].forEach((id) => {
@@ -82,6 +85,39 @@ function markRequired(fields) {
     if (e.target.value.trim()) e.target.classList.remove("input-invalid");
   });
 });
+
+/* [신규] 다음(Daum) 우편번호 검색 - 도로명주소 + 우편번호를 받아와 채워넣음 */
+document
+  .getElementById("churchSignupAddressSearchBtn")
+  .addEventListener("click", () => {
+    if (typeof daum === "undefined" || !daum.Postcode) {
+      alert("주소 검색 기능을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    new daum.Postcode({
+      oncomplete: function (data) {
+        document.getElementById("churchSignupAddress").value =
+          data.roadAddress || data.jibunAddress;
+        document.getElementById("churchSignupZonecode").value = data.zonecode;
+        document.getElementById("churchSignupAddress").classList.remove(
+          "input-invalid",
+        );
+        document.getElementById("churchSignupAddressDetail").focus();
+      },
+    }).open();
+  });
+
+/* [신규] 교단 선택에서 "기타" 선택 시에만 직접입력 칸을 보여줌 */
+document
+  .getElementById("churchSignupDenomination")
+  .addEventListener("change", (e) => {
+    const etcEl = document.getElementById("churchSignupDenominationEtc");
+    etcEl.style.display = e.target.value === "기타" ? "block" : "none";
+    if (e.target.value !== "기타") {
+      etcEl.value = "";
+      etcEl.classList.remove("input-invalid");
+    }
+  });
 
 /* [신규] 이용약관/개인정보 동의 체크박스가 둘 다 체크됐는지 확인.
    안 됐으면 해당 행을 빨갛게 표시하고 에러 메시지를 채워줌 */
@@ -163,8 +199,20 @@ document
     errEl.textContent = "";
     const nameEl = document.getElementById("churchSignupName");
     const churchNameEl = document.getElementById("churchSignupChurchName");
-    if (!markRequired([nameEl, churchNameEl])) {
-      errEl.textContent = "이름과 교회 이름을 모두 입력하세요.";
+    const addressEl = document.getElementById("churchSignupAddress");
+    const addressDetailEl = document.getElementById(
+      "churchSignupAddressDetail",
+    );
+    const denomEl = document.getElementById("churchSignupDenomination");
+    const denomEtcEl = document.getElementById("churchSignupDenominationEtc");
+    const pastorEl = document.getElementById("churchSignupPastor");
+    if (!markRequired([nameEl, churchNameEl, addressEl, addressDetailEl])) {
+      errEl.textContent =
+        "이름 · 교회 이름 · 주소를 모두 입력하세요. (주소는 '주소 검색' 버튼으로 검색해주세요)";
+      return;
+    }
+    if (denomEl.value === "기타" && !markRequired([denomEtcEl])) {
+      errEl.textContent = "교단명을 직접 입력해주세요.";
       return;
     }
     if (!checkConsents("churchConsentTerms", "churchConsentPrivacy", errEl)) {
@@ -177,21 +225,37 @@ document
     btn.textContent = "확인 중...";
     try {
       /* [수정] 슈퍼관리자 승인 절차 제거 - 대신 교회 이름 중복 여부를 먼저 확인함.
-         공백 유무/대소문자 차이로 인한 중복 등록을 막기 위해 nameKey(공백 제거 + 소문자)로 비교 */
+         공백 유무/대소문자 차이로 인한 중복 등록을 막기 위해 nameKey(공백 제거 + 소문자)로 비교.
+         [신규] 전국에 같은 이름의 교회가 여러 곳 있을 수 있으므로, 이름만으로는
+         막지 않고 이름+주소(우편번호+상세주소)가 완전히 같을 때만 차단함. 이름은
+         같은데 주소가 다르면 "다른 교회가 맞는지" 한 번 확인만 받고 진행시킴 */
       const churchName = churchNameEl.value.trim();
       const nameKey = churchName.replace(/\s+/g, "").toLowerCase();
+      const addressDetail = addressDetailEl.value.trim();
+      const addressKey = `${addressEl.value.trim()} ${addressDetail}`
+        .replace(/\s+/g, "")
+        .toLowerCase();
       const dupSnap = await db
         .collection("churches")
         .where("nameKey", "==", nameKey)
-        .limit(1)
         .get();
       if (!dupSnap.empty) {
-        errEl.textContent = "이미 등록된 교회 이름입니다.";
-        churchNameEl.classList.add("input-invalid");
-        churchNameEl.focus();
-        btn.disabled = false;
-        btn.textContent = "교회 가입 완료";
-        return;
+        const exactDup = dupSnap.docs.some((d) => d.data().addressKey === addressKey);
+        if (exactDup) {
+          errEl.textContent = "이미 같은 이름·주소로 등록된 교회입니다.";
+          churchNameEl.classList.add("input-invalid");
+          btn.disabled = false;
+          btn.textContent = "교회 가입 완료";
+          return;
+        }
+        const proceed = window.confirm(
+          `'${churchName}'이라는 이름의 교회가 이미 등록되어 있습니다.\n주소가 다른 별개의 교회가 맞다면 계속 진행해주세요.`,
+        );
+        if (!proceed) {
+          btn.disabled = false;
+          btn.textContent = "교회 가입 완료";
+          return;
+        }
       }
 
       btn.textContent = "가입 처리 중...";
@@ -226,6 +290,14 @@ document
           plan: "free",
           ownerEmail: cred.email,
           createdAt: Date.now(),
+          /* [신규] 주소/교단/담임목사 - 동명 교회 구분 및 기본 정보 */
+          address: addressEl.value.trim(),
+          addressDetail,
+          zonecode: document.getElementById("churchSignupZonecode").value,
+          addressKey,
+          denomination:
+            denomEl.value === "기타" ? denomEtcEl.value.trim() : denomEl.value,
+          pastorName: pastorEl.value.trim() || null,
         });
 
         stage = "사용자/역할 문서 생성";
@@ -495,7 +567,7 @@ async function routeAfterAuth(user) {
     document.getElementById("churchName").value = "관리자 대시보드";
     document.getElementById("churchName").disabled = true;
     document.getElementById("churchCodeBadge").style.display = "none";
-    document.getElementById("logoUploadLabel").style.display = "none";
+    document.getElementById("adminTabbar").style.display = "none";
     document.getElementById("planToggleBtn").style.display = "none";
     renderRoleSwitcher();
     await enterSuperadminDashboard();
@@ -785,7 +857,15 @@ async function loadChurchName() {
   document.getElementById("churchName").value = name;
   document.getElementById("churchName").disabled = currentRole !== "admin";
 
-  /* [신규] 운영자(옛 관리자)에게만 공유용 교회 코드와 로고 변경 버튼을 보여줌 */
+  /* [신규] 업로드된 교회 로고가 있으면 표지에 반영 (없으면 기본 아이콘 유지) */
+  const logoImg = document.getElementById("churchLogoImg");
+  if (logoImg) {
+    logoImg.src =
+      (currentChurchData && currentChurchData.logoUrl) || "icon.jpg";
+  }
+
+  /* [신규] 운영자(옛 관리자)에게만 공유용 교회 코드를 보여줌.
+     로고 변경/교회 정보 수정은 '교회 설정' 탭(church-settings.js)에서 처리 */
   const isChurchOwner = currentRole === "admin";
   const codeBadge = document.getElementById("churchCodeBadge");
   if (isChurchOwner && currentChurchData && currentChurchData.code) {
@@ -795,9 +875,6 @@ async function loadChurchName() {
   } else {
     codeBadge.style.display = "none";
   }
-  document.getElementById("logoUploadLabel").style.display = isChurchOwner
-    ? "inline-block"
-    : "none";
 
   /* [신규] 요금제 표시 - 운영자만 토글(임시, 결제 연동 전까지) 가능 */
   const planBtn = document.getElementById("planToggleBtn");

@@ -194,6 +194,10 @@ body {
   width: 100%;
   margin-bottom: 10px;
 }
+.login-card select {
+  width: 100%;
+  margin-bottom: 10px;
+}
 .login-card .btn {
   width: 100%;
   margin-bottom: 8px;
@@ -286,6 +290,29 @@ body {
 .tab.active {
   background: var(--paper);
   color: var(--ink);
+}
+
+/* [신규] 운영자 전용 상단 탭 (대시보드 / 그룹 관리 / 교회 설정) */
+.admin-tabbar {
+  display: flex;
+  gap: 6px;
+  padding: 14px 28px 0;
+}
+.admin-tab {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: #fffdf7;
+  border: 1px solid var(--paper-line);
+  padding: 9px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.admin-tab.active {
+  background: var(--cover-navy);
+  color: #f7efda;
+  border-color: var(--cover-navy);
 }
 
 .breadcrumb {
@@ -1361,4 +1388,109 @@ button.btn:disabled {
   border: 1px solid var(--paper-line);
   border-radius: 8px;
   background: #fffdf7;
+}
+
+/* [신규] 회원가입 - 주소 검색 행 (같은 이름의 교회가 여러 곳일 수 있어 추가) */
+.address-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.address-row input {
+  flex: 1;
+  margin-bottom: 0 !important;
+  background: #f2ede0;
+  cursor: default;
+}
+.address-row .btn {
+  width: auto;
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
+  white-space: nowrap;
+}
+
+/* [신규] 교회 설정 화면 (로고 업로드 + 교회 정보 수정) */
+.settings-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  background: #fffdf7;
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+}
+.settings-logo-row .brand-logo-wrapper {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.settings-logo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.settings-logo-msg {
+  font-size: 12px;
+  color: var(--ink-soft);
+  min-height: 16px;
+}
+.settings-logo-msg.error {
+  color: var(--stamp-red);
+}
+.settings-logo-msg.success {
+  color: var(--present-green);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: #fffdf7;
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-field > span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.settings-field input,
+.settings-field select {
+  width: 100%;
+}
+.settings-form .address-row {
+  margin-bottom: 0;
+}
+.settings-form #settingsChurchDenominationEtc {
+  width: 100%;
+}
+.settings-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+.settings-save-msg {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.settings-save-msg.error {
+  color: var(--stamp-red);
+}
+.settings-save-msg.success {
+  color: var(--present-green);
+}
+
+/* [신규] 팀장 전용 - 전체 출석 / 전체 출석 해제 */
+.attend-bulk-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
 }

@@ -7,10 +7,10 @@ function userLabel(email) {
   return email;
 }
 
-/* 이메일로 가입 유저의 표시용 이름만 필요할 때 (팀장 출석 관리용) */
+/* 이메일로 가입 유저의 표시용 이름만 필요할 때 (지정 팝업 이외의 화면 - 이메일은 노출하지 않음) */
 function userNameOf(email) {
   const u = usersList.find((x) => x.email === email);
-  return (u && u.name) || email;
+  return (u && u.name) || "(이름 미입력)";
 }
 
 async function loadUsers() {

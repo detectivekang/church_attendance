@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    /* [신규] 교회 로고 이미지 - 누구나 읽을 수 있고(로그인 화면에서도 보여야 함),
+       쓰기는 해당 교회의 운영자(ownerEmail)만 가능. 5MB 이하 이미지 파일만 허용. */
+    match /church-logos/{churchId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email ==
+           firestore.get(/databases/(default)/documents/churches/$(churchId)).data.ownerEmail
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
