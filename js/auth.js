@@ -83,6 +83,61 @@ function markRequired(fields) {
   });
 });
 
+/* [신규] 이용약관/개인정보 동의 체크박스가 둘 다 체크됐는지 확인.
+   안 됐으면 해당 행을 빨갛게 표시하고 에러 메시지를 채워줌 */
+function checkConsents(termsCbId, privacyCbId, errEl) {
+  const termsCb = document.getElementById(termsCbId);
+  const privacyCb = document.getElementById(privacyCbId);
+  const termsRow = termsCb.closest(".consent-row");
+  const privacyRow = privacyCb.closest(".consent-row");
+  termsRow.classList.toggle("input-invalid", !termsCb.checked);
+  privacyRow.classList.toggle("input-invalid", !privacyCb.checked);
+  if (!termsCb.checked || !privacyCb.checked) {
+    errEl.textContent = "이용약관과 개인정보 수집·이용에 모두 동의해야 가입할 수 있습니다.";
+    return false;
+  }
+  return true;
+}
+[
+  ["churchConsentTerms", "churchConsentPrivacy"],
+  ["regularConsentTerms", "regularConsentPrivacy"],
+].forEach(([termsCbId, privacyCbId]) => {
+  [termsCbId, privacyCbId].forEach((id) => {
+    document.getElementById(id).addEventListener("change", (e) => {
+      e.target.closest(".consent-row").classList.remove("input-invalid");
+    });
+  });
+});
+
+/* [신규] 이용약관 / 개인정보 처리방침 보기 모달 */
+function openLegalModal(overlayId) {
+  document.getElementById(overlayId).style.display = "flex";
+}
+function closeLegalModal(overlayId) {
+  document.getElementById(overlayId).style.display = "none";
+}
+document.querySelectorAll("[data-open-terms]").forEach((el) => {
+  el.addEventListener("click", () => openLegalModal("termsModalOverlay"));
+});
+document.querySelectorAll("[data-open-privacy]").forEach((el) => {
+  el.addEventListener("click", () => openLegalModal("privacyModalOverlay"));
+});
+document.getElementById("closeTermsModalBtn").addEventListener("click", () => {
+  closeLegalModal("termsModalOverlay");
+});
+document
+  .getElementById("closePrivacyModalBtn")
+  .addEventListener("click", () => closeLegalModal("privacyModalOverlay"));
+document.getElementById("termsModalOverlay").addEventListener("click", (e) => {
+  if (e.target.id === "termsModalOverlay") closeLegalModal("termsModalOverlay");
+});
+document
+  .getElementById("privacyModalOverlay")
+  .addEventListener("click", (e) => {
+    if (e.target.id === "privacyModalOverlay")
+      closeLegalModal("privacyModalOverlay");
+  });
+
 /* 이메일/비밀번호 공통 검증 (형식 체크는 Firebase가 최종적으로 해줌) */
 function validateEmailPw(errEl) {
   const emailEl = document.getElementById("loginEmail");
@@ -110,6 +165,9 @@ document
     const churchNameEl = document.getElementById("churchSignupChurchName");
     if (!markRequired([nameEl, churchNameEl])) {
       errEl.textContent = "이름과 교회 이름을 모두 입력하세요.";
+      return;
+    }
+    if (!checkConsents("churchConsentTerms", "churchConsentPrivacy", errEl)) {
       return;
     }
     const cred = validateEmailPw(errEl);
@@ -186,6 +244,9 @@ document
           name: nameEl.value.trim(),
           createdAt: Date.now(),
           churchId: churchRef.id,
+          /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
+          agreedTermsAt: Date.now(),
+          agreedPrivacyAt: Date.now(),
         });
         /* [수정] 이전에는 기본 카테고리를 자동 생성하고 그 카테고리의
            운영자(operator) 컨텍스트까지 함께 부여했는데, roles 문서에 컨텍스트가
@@ -230,6 +291,9 @@ document
     const codeEl = document.getElementById("regularSignupCode");
     if (!markRequired([nameEl, codeEl])) {
       errEl.textContent = "이름과 교회 코드를 모두 입력하세요.";
+      return;
+    }
+    if (!checkConsents("regularConsentTerms", "regularConsentPrivacy", errEl)) {
       return;
     }
     const cred = validateEmailPw(errEl);
@@ -279,6 +343,9 @@ document
           name: nameEl.value.trim(),
           createdAt: Date.now(),
           churchId: churchDoc.id,
+          /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
+          agreedTermsAt: Date.now(),
+          agreedPrivacyAt: Date.now(),
         });
         batch.set(rolesRef, {
           contexts: [{ role: "none", churchId: churchDoc.id }],
