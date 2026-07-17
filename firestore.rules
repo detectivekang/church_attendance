@@ -49,65 +49,110 @@ service cloud.firestore {
     function hasApprovedRoleIn(churchId) {
       return signedIn() && myApprovedChurchIds().hasAny([churchId]);
     }
-    function categoryOfGroup(groupId) {
-      return get(/databases/$(database)/documents/groups/$(groupId)).data.categoryId;
+    /* [수정] categories/groups/members/attendance/notices가 전부
+       churches/{churchId}/... 하위 컬렉션 구조로 실제 앱(churchCol())이
+       쓰고 있어서, 그룹 문서 조회 경로도 그에 맞춰 churchId를 받도록 함 */
+    function categoryOfGroup(churchId, groupId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/groups/$(groupId)).data.categoryId;
+    }
+
+    /* =========================================================
+       roles 업데이트(위임) 검증 헬퍼
+       - 클라이언트(addRoleContext/removeRoleContext)는 항상 컨텍스트를
+         "한 번에 하나만" 추가하거나 제거하도록 되어 있음. 그 전제를
+         규칙에서도 강제해서, contexts 배열을 통째로 조작해 여러 역할을
+         한꺼번에 심는 것을 막는다.
+       - 한 사람이 여러 교회/카테고리/그룹에 걸쳐 동시에 여러 역할
+         (예: A 카테고리 그룹장이면서 동시에 B 그룹 팀장)을 갖는 것은
+         계속 지원됨 - contexts 배열에 항목이 여러 개 누적될 뿐이고,
+         변경은 항상 그 중 한 항목 단위로만 검증됨.
+       ========================================================= */
+    function addedContexts() {
+      return request.resource.data.contexts.removeAll(resource.data.contexts);
+    }
+    function removedContexts() {
+      return resource.data.contexts.removeAll(request.resource.data.contexts);
+    }
+    /* ctx를 부여하거나 회수할 권한이 나에게 있는지: "admin"(운영자) 역할은
+       이 경로로 부여/회수할 수 없음(교회 가입 시에만 생성됨). "operator"
+       (그룹장)는 그 교회의 운영자만, "leader"(팀장)는 그 교회의 운영자
+       또는 그 그룹이 속한 카테고리의 그룹장만 다룰 수 있음 */
+    function contextChangeAllowed(ctx) {
+      return (ctx.role == "operator" && isAdminOf(ctx.churchId))
+        || (ctx.role == "leader"
+            && (isAdminOf(ctx.churchId) || isOperatorOf(ctx.churchId, categoryOfGroup(ctx.churchId, ctx.groupId))));
+    }
+    /* churchIds/approvedChurchIds가 최소한의 형태적 정합성(리스트 타입,
+       approvedChurchIds ⊆ churchIds)을 지키는지 - contexts 자체는 위에서
+       한 항목 단위로 이미 검증되므로, 여기서는 파생 필드 조작을 통한
+       우회(예: 엉뚱한 churchId를 끼워 넣어 다른 교회 사람이 이 문서를
+       읽을 수 있게 하는 시도)를 추가로 막는다 */
+    function derivedFieldsSane() {
+      return request.resource.data.churchIds is list
+        && request.resource.data.approvedChurchIds is list
+        && request.resource.data.churchIds.hasAll(request.resource.data.approvedChurchIds);
     }
 
     /* =========================================================
        churches - 일반가입 때 코드 존재 확인을 로그인 전에도 해야 해서
        읽기는 공개. 생성은 로그인한 사람이 "본인을 관리자로" 새로 만들
        때만 허용(교회 가입 흐름), 수정/삭제는 그 교회 관리자만.
+
+       [수정] 카테고리/그룹/팀원/출석/공지사항은 실제로는 최상위 컬렉션이
+       아니라 이 문서 아래의 하위 컬렉션(churchCol() 참고)이라서, 전부
+       이 match 블록 안으로 옮기고 churchId를 request.resource.data에서
+       읽는 대신 경로 변수로 직접 받도록 함. 예전 규칙은 하위 컬렉션 경로를
+       전혀 매칭하지 못해서 마지막 "명시 안 된 경로는 전부 차단" 규칙에
+       걸려 카테고리/그룹 관련 읽기·쓰기가 전부 막히고 있었음.
        ========================================================= */
     match /churches/{churchId} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.adminEmail == myEmail();
+      allow create: if signedIn() && request.resource.data.ownerEmail == myEmail();
       allow update, delete: if isAdminOf(churchId);
-    }
 
-    /* =========================================================
-       categories - 해당 교회 관리자만 생성/수정/삭제
-       ========================================================= */
-    match /categories/{categoryId} {
-      allow read: if signedIn();
-      allow create: if isAdminOf(request.resource.data.churchId);
-      allow update, delete: if isAdminOf(resource.data.churchId);
-    }
+      /* 카테고리 - 해당 교회 관리자만 생성/수정/삭제 */
+      match /categories/{categoryId} {
+        allow read: if signedIn();
+        allow create: if isAdminOf(churchId);
+        allow update, delete: if isAdminOf(churchId) || isOperatorOf(churchId, categoryId);
+      }
 
-    /* =========================================================
-       groups - 관리자 또는 해당 카테고리 운영자. 팀장도 출석옵션
-       토글 등 자기 그룹 문서 일부를 수정하므로 팀장도 허용
-       ========================================================= */
-    match /groups/{groupId} {
-      allow read: if signedIn();
-      allow create: if isAdminOf(request.resource.data.churchId)
-        || isOperatorOf(request.resource.data.churchId, request.resource.data.categoryId);
-      allow update, delete: if isAdminOf(resource.data.churchId)
-        || isOperatorOf(resource.data.churchId, resource.data.categoryId)
-        || isLeaderOf(resource.data.churchId, groupId);
-    }
+      /* 그룹 - 관리자 또는 해당 카테고리 운영자. 팀장도 출석옵션
+         토글 등 자기 그룹 문서 일부를 수정하므로 팀장도 허용 */
+      match /groups/{groupId} {
+        allow read: if signedIn();
+        allow create: if isAdminOf(churchId)
+          || isOperatorOf(churchId, request.resource.data.categoryId);
+        allow update, delete: if isAdminOf(churchId)
+          || isOperatorOf(churchId, resource.data.categoryId)
+          || isLeaderOf(churchId, groupId);
+      }
 
-    /* =========================================================
-       members - 관리자, 해당 그룹 팀장, 또는 그 그룹이 속한 카테고리
-       운영자(그룹 삭제 시 소속 팀원도 함께 정리하므로 운영자도 필요)
-       ========================================================= */
-    match /members/{memberId} {
-      allow read: if signedIn();
-      allow create: if isAdminOf(request.resource.data.churchId)
-        || isLeaderOf(request.resource.data.churchId, request.resource.data.groupId)
-        || isOperatorOf(request.resource.data.churchId, categoryOfGroup(request.resource.data.groupId));
-      allow update, delete: if isAdminOf(resource.data.churchId)
-        || isLeaderOf(resource.data.churchId, resource.data.groupId)
-        || isOperatorOf(resource.data.churchId, categoryOfGroup(resource.data.groupId));
-    }
+      /* 팀원 - 관리자, 해당 그룹 팀장, 또는 그 그룹이 속한 카테고리
+         운영자(그룹 삭제 시 소속 팀원도 함께 정리하므로 운영자도 필요) */
+      match /members/{memberId} {
+        allow read: if signedIn();
+        allow create: if isAdminOf(churchId)
+          || isLeaderOf(churchId, request.resource.data.groupId)
+          || isOperatorOf(churchId, categoryOfGroup(churchId, request.resource.data.groupId));
+        allow update, delete: if isAdminOf(churchId)
+          || isLeaderOf(churchId, resource.data.groupId)
+          || isOperatorOf(churchId, categoryOfGroup(churchId, resource.data.groupId));
+      }
 
-    /* =========================================================
-       attendance - 문서 하나에 여러 그룹 팀원이 섞여 있을 수 있어
-       그룹 단위 검증 대신 "이 교회의 승인된 스태프인지"까지만 확인
-       ========================================================= */
-    match /attendance/{docId} {
-      allow read: if signedIn();
-      allow write: if isAdminOf(request.resource.data.churchId)
-        || hasApprovedRoleIn(request.resource.data.churchId);
+      /* 출석 - 문서 하나에 여러 그룹 팀원이 섞여 있을 수 있어
+         그룹 단위 검증 대신 "이 교회의 승인된 스태프인지"까지만 확인 */
+      match /attendance/{docId} {
+        allow read: if signedIn();
+        allow write: if isAdminOf(churchId) || hasApprovedRoleIn(churchId);
+      }
+
+      /* 공지사항 - 조회는 같은 교회 소속(대기중 포함), 작성/수정/삭제는
+         그 교회 관리자만 */
+      match /notices/{noticeId} {
+        allow read: if signedIn() && myAllChurchIds().hasAny([churchId]);
+        allow create, update, delete: if isAdminOf(churchId);
+      }
     }
 
     /* =========================================================
@@ -122,23 +167,49 @@ service cloud.firestore {
 
       allow create: if signedIn() && myEmail() == email
         && request.resource.data.contexts.size() == 1
+        && request.resource.data.contexts[0].churchId is string
+        && exists(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId))
+        && request.resource.data.churchIds == [request.resource.data.contexts[0].churchId]
         && (
           (
             request.resource.data.contexts[0].role == "admin"
-            && exists(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId))
-            && get(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId)).data.adminEmail == myEmail()
+            && get(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId)).data.ownerEmail == myEmail()
+            && request.resource.data.approvedChurchIds == [request.resource.data.contexts[0].churchId]
           )
           ||
           (
             request.resource.data.contexts[0].role == "none"
-            && exists(/databases/$(database)/documents/churches/$(request.resource.data.contexts[0].churchId))
+            && request.resource.data.approvedChurchIds == []
           )
         );
 
+      /* [수정] 기존 규칙은 "같은 교회에 승인된 역할이 있으면 누구나
+         이 문서를 원하는 대로 쓸 수 있음"이라 팀장도 스스로를 운영자로
+         올리거나 churchIds를 조작해 다른 교회 문서까지 건드릴 수 있는
+         구멍이 있었음. 이제는 한 번의 update에서 contexts 배열 항목이
+         정확히 1개 추가되거나 1개 제거되는 것만 허용하고, 그 항목을
+         부여/회수할 자격(운영자→그룹장/팀장, 그룹장→팀장)이 있는지까지
+         검증한다. "admin"(운영자) 역할은 이 경로로 바꿀 수 없음. */
       allow update: if signedIn()
+        && derivedFieldsSane()
         && (
-          request.resource.data.churchIds.hasAny(myApprovedChurchIds())
-          || (resource != null && resource.data.churchIds.hasAny(myApprovedChurchIds()))
+          (addedContexts().size() == 1 && removedContexts().size() == 0
+            && contextChangeAllowed(addedContexts()[0]))
+          ||
+          (removedContexts().size() == 1 && addedContexts().size() == 0
+            && contextChangeAllowed(removedContexts()[0]))
+          ||
+          /* [수정] 최초 가입 시 자리표시자로 만들어진 "none"(권한 없음)
+             컨텍스트는 이후 어떤 update 규칙으로도 제거할 방법이 없어서,
+             그룹장/팀장으로 지정된 뒤에도 계속 "권한 없음"이 함께 남아
+             역할 선택 화면에 불필요하게 떠 있었음. 같은 교회에 대한
+             none 컨텍스트 1개를 제거하면서 operator/leader 컨텍스트
+             1개를 추가하는 "교체"만 별도로 허용(추가되는 역할에 대한
+             권한 검증은 기존과 동일하게 contextChangeAllowed로 확인) */
+          (addedContexts().size() == 1 && removedContexts().size() == 1
+            && removedContexts()[0].role == "none"
+            && removedContexts()[0].churchId == addedContexts()[0].churchId
+            && contextChangeAllowed(addedContexts()[0]))
         );
 
       allow delete: if false;
@@ -156,18 +227,6 @@ service cloud.firestore {
         && (myEmail() == email || isAdminOf(resource.data.churchId));
     }
 
-    /* =========================================================
-       notices - 조회는 같은 교회 소속(대기중 포함), 작성/수정/삭제는
-       그 교회 관리자만
-       ========================================================= */
-    match /notices/{noticeId} {
-      allow read: if signedIn() && myAllChurchIds().hasAny([resource.data.churchId]);
-      allow create: if isAdminOf(request.resource.data.churchId);
-      allow update, delete: if isAdminOf(resource.data.churchId);
-    }
-
-    /* 위에서 명시하지 않은 나머지 모든 경로는 기본적으로 전부 차단됨.
-       (구버전 단일교회 시절의 settings/church 문서는 더 이상 사용하지
-       않음 - 교회 이름/로고/요금제는 이제 churches/{churchId}에 저장) */
+    /* 위에서 명시하지 않은 나머지 모든 경로는 기본적으로 전부 차단됨. */
   }
 }

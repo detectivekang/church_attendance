@@ -81,10 +81,15 @@ function todayStr() {
   return d.toISOString().slice(0, 10);
 }
 function roleName(r) {
+  /* [수정] 실제 권한 로직(canManageCategories/canManageGroups)과 맞춰
+     표시 이름을 바로잡음: "admin"(카테고리 관리 = 교회 가입자 본인)은
+     운영자, "operator"(그룹 관리)는 그룹장, 플랫폼 최고관리자는
+     superadmin으로 별도 표시 */
   return (
     {
-      admin: "관리자",
-      operator: "운영자",
+      superadmin: "관리자",
+      admin: "운영자",
+      operator: "그룹장",
       leader: "팀장",
       none: "승인 대기",
     }[r] || ""

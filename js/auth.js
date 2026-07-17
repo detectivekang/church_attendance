@@ -140,9 +140,26 @@ document
       /* [수정] 계정 생성 시점부터 우리가 직접 routeAfterAuth를 호출해
          최종 라우팅을 마칠 때까지, onAuthStateChanged의 자동 라우팅을 막음 */
       suppressAutoRoute = true;
+      /* [수정] 실패 시 정확히 어느 단계에서 막혔는지 알 수 있도록 태깅.
+         "Missing or insufficient permissions"만으로는 어느 문서 쓰기가
+         거부됐는지 알 수 없어서, 각 단계를 stage에 기록해두고 catch에서
+         함께 표시함 */
+      let stage = "계정 생성";
       try {
         await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-        /* [수정] 승인 대기 없이 바로 생성되도록 status를 처음부터 "approved"로 저장 */
+        /* [수정] 계정 생성 직후 곧바로 Firestore 쓰기를 보내면, 새로
+           발급된 로그인 토큰이 아직 Firestore 클라이언트에 반영되기 전이라
+           "로그인 안 한 사용자"로 취급되어 permission-denied가 나는 경우가
+           있음 - 토큰을 강제로 새로 받아온 뒤 다음 단계로 진행해 이 레이스
+           컨디션을 없앰 */
+        await auth.currentUser.getIdToken(true);
+
+        stage = "교회 문서 생성";
+        /* [수정] 승인 대기 없이 바로 생성되도록 status를 처음부터 "approved"로 저장.
+           roles 문서 생성 규칙이 exists(교회 문서)를 검사하는데, Firestore 보안
+           규칙은 같은 batch/트랜잭션 안에서 함께 쓰는 다른 문서를 아직 "존재하지
+           않는" 상태로 보고 검사하므로, 교회 문서는 이렇게 따로 먼저 확정지어야
+           바로 아래 batch에서 roles 문서의 exists() 검사가 통과함 */
         const churchRef = await db.collection("churches").add({
           name: churchName,
           nameKey,
@@ -152,7 +169,22 @@ document
           ownerEmail: cred.email,
           createdAt: Date.now(),
         });
-        await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
+
+        stage = "사용자/역할 문서 생성";
+        /* [수정] 이전에는 사용자 문서 → 역할 문서를 각각 따로 await로 썼는데,
+           역할 문서 쓰기만 실패해도 사용자 문서는 이미 만들어진 "반쪽짜리
+           계정"이 생겨버렸음. 그러면 이 계정은 이후 로그인할 때마다 역할
+           문서가 없어서 initRoleView()가 계속 "승인 대기 중" 화면으로
+           떨어지는 문제가 있었음(권한없음처럼 보임). 이제 이 둘은 batch로
+           묶어 항상 같이 성공하거나 같이 실패하도록 함(부분 실패로 인한
+           반쪽짜리 상태 자체를 없앰) */
+        const userRef = db.collection("users").doc(cred.email);
+        const rolesRef = db.collection("roles").doc(cred.email);
+        const batch = db.batch();
+        batch.set(userRef, {
+          email: cred.email,
+          name: nameEl.value.trim(),
+          createdAt: Date.now(),
           churchId: churchRef.id,
         });
         /* [수정] 이전에는 기본 카테고리를 자동 생성하고 그 카테고리의
@@ -163,10 +195,14 @@ document
            애초에 "admin"(운영자) 역할 하나만으로도 카테고리 관리 권한은 이미
            충분하므로(로그인 즉시 카테고리 관리 화면으로 진입), 불필요한 카테고리
            자동 생성과 이중 역할 부여를 없애고 컨텍스트를 1개로 단순화함 */
-        await db
-          .collection("roles")
-          .doc(cred.email)
-          .set({ contexts: [{ role: "admin" }] });
+        batch.set(rolesRef, {
+          contexts: [{ role: "admin", churchId: churchRef.id }],
+          churchIds: [churchRef.id],
+          approvedChurchIds: [churchRef.id],
+        });
+        await batch.commit();
+
+        stage = "화면 진입(라우팅)";
         /* 문서 작성이 모두 끝난 지금 시점 기준으로 라우팅을 명시적으로 실행 */
         await routeAfterAuth(auth.currentUser);
       } finally {
@@ -175,9 +211,11 @@ document
     } catch (e) {
       /* [수정] 이미 화면이 앱 화면으로 넘어가 로그인 화면(및 errEl)이
          가려져 있을 수 있으므로, alert로도 함께 알려서 실패가 조용히
-         묻히지 않도록 함 */
-      errEl.textContent = translateAuthError(e);
-      alert("교회 가입 처리 중 문제가 발생했습니다: " + translateAuthError(e));
+         묻히지 않도록 함. 어느 단계(stage)에서 실패했는지도 함께 표시 */
+      const msg = `[${stage}] ` + translateAuthError(e);
+      errEl.textContent = msg;
+      alert("교회 가입 처리 중 문제가 발생했습니다: " + msg);
+      console.error("교회 가입 실패 - stage:", stage, e);
       btn.disabled = false;
       btn.textContent = "교회 가입 완료";
     }
@@ -222,9 +260,32 @@ document
       suppressAutoRoute = true;
       try {
         await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-        await ensureUserDoc({ email: cred.email }, nameEl.value.trim(), {
+        /* [수정] 계정 생성 직후 토큰이 아직 반영되기 전에 쓰기가 나가
+           permission-denied가 나는 레이스 컨디션 방지 (교회 가입과 동일) */
+        await auth.currentUser.getIdToken(true);
+        /* [수정] 이전에는 users 문서만 만들고 roles 문서를 아예 만들지
+           않았음. 그러면 이 사람의 roles/{email} 문서가 존재하지 않는
+           상태가 되고, 나중에 운영자/그룹장이 이 사람에게 "최초로" 그룹장
+           또는 팀장 역할을 주려는 시도가 Firestore 입장에서는 update가
+           아니라 create가 되어버림 - roles 컬렉션의 create 규칙은 "본인이
+           본인 문서를 만드는 경우"만 허용하므로 남이 만들려는 이 create는
+           항상 거부됨(권한 없음 오류). 교회 가입과 동일하게 users 문서와
+           함께 role:"none" roles 문서를 batch로 같이 만들어 이 구멍을 없앰 */
+        const userRef = db.collection("users").doc(cred.email);
+        const rolesRef = db.collection("roles").doc(cred.email);
+        const batch = db.batch();
+        batch.set(userRef, {
+          email: cred.email,
+          name: nameEl.value.trim(),
+          createdAt: Date.now(),
           churchId: churchDoc.id,
         });
+        batch.set(rolesRef, {
+          contexts: [{ role: "none", churchId: churchDoc.id }],
+          churchIds: [churchDoc.id],
+          approvedChurchIds: [],
+        });
+        await batch.commit();
         /* 문서 작성이 모두 끝난 뒤 명시적으로 라우팅 */
         await routeAfterAuth(auth.currentUser);
       } finally {
@@ -233,6 +294,7 @@ document
     } catch (e) {
       errEl.textContent = translateAuthError(e);
       alert("가입 처리 중 문제가 발생했습니다: " + translateAuthError(e));
+      console.error("일반 가입 실패:", e);
     } finally {
       btn.disabled = false;
       btn.textContent = "가입 완료";
@@ -474,7 +536,33 @@ async function resolveRole(user) {
   currentChurchData = { id: churchId, ...churchDoc.data() };
   try {
     const doc = await db.collection("roles").doc(user.email).get();
-    userContexts = extractContexts(doc.exists ? doc.data() : null);
+    if (!doc.exists) {
+      /* [수정] 예전(버그 있던) 일반 가입 경로로 들어와 roles 문서가 아예
+         없는 계정 - 본인이 로그인한 지금 이 시점에 스스로 "none" 문서를
+         만들어 채워넣음(본인이 본인 문서를 create하는 건 규칙상 허용됨).
+         이렇게 해야 이후 운영자/그룹장이 이 사람에게 역할을 줄 때
+         update로 처리되어 정상 동작함 */
+      try {
+        await db.collection("roles").doc(user.email).set({
+          contexts: [{ role: "none", churchId }],
+          churchIds: [churchId],
+          approvedChurchIds: [],
+        });
+        userContexts = [];
+      } catch (e2) {
+        userContexts = [];
+      }
+    } else {
+      userContexts = extractContexts(doc.data());
+      /* [수정] 이미 실제 역할(그룹장/팀장 등)을 갖고 있는데 예전 "none"
+         자리표시자가 함께 남아있는 기존 계정을 위한 방어 조치 - 실제 역할이
+         하나라도 있으면 화면(역할 선택/전환)에서는 none 항목을 숨김.
+         DB의 leftover는 다음 번 역할 변경 시 addRoleContext가 정리함 */
+      const hasRealRole = userContexts.some((c) => c.role !== "none");
+      if (hasRealRole) {
+        userContexts = userContexts.filter((c) => c.role !== "none");
+      }
+    }
   } catch (e) {
     userContexts = [];
   }
@@ -500,9 +588,28 @@ function extractContexts(data) {
 function sameContext(a, b) {
   return (
     a.role === b.role &&
+    (a.churchId || null) === (b.churchId || null) &&
     (a.groupId || null) === (b.groupId || null) &&
     (a.categoryId || null) === (b.categoryId || null)
   );
+}
+
+/* contexts 배열로부터 churchIds(걸쳐있는 모든 교회)와 approvedChurchIds
+   ("none"이 아닌 역할을 가진 교회만)를 다시 계산. roles 문서를 쓸 때마다
+   항상 이 두 필드를 함께 갱신해야 firestore.rules가 기대하는 스키마와
+   어긋나지 않음(둘 중 하나라도 빠지면 이후 그 사람의 읽기/쓰기 권한
+   체크가 전부 깨짐) */
+function deriveChurchFields(contexts) {
+  const churchIds = [...new Set(contexts.map((c) => c.churchId).filter(Boolean))];
+  const approvedChurchIds = [
+    ...new Set(
+      contexts
+        .filter((c) => c.role && c.role !== "none")
+        .map((c) => c.churchId)
+        .filter(Boolean),
+    ),
+  ];
+  return { churchIds, approvedChurchIds };
 }
 
 /* 활성 컨텍스트(userContexts[activeContextIndex])를 currentRole/roleScope에 반영 */
@@ -571,25 +678,36 @@ async function loadContextLabels() {
    - 트랜잭션으로 처리해 동시에 여러 그룹에 지정되어도 유실되지 않도록 함
    ========================================================= */
 async function addRoleContext(email, ctx) {
+  const fullCtx = { ...ctx, churchId: ctx.churchId || currentChurchId };
   const ref = db.collection("roles").doc(email);
   await db.runTransaction(async (t) => {
     const doc = await t.get(ref);
     let contexts = extractContexts(doc.exists ? doc.data() : null);
-    if (!contexts.some((c) => sameContext(c, ctx))) {
-      contexts = [...contexts, ctx];
+    /* [수정] 최초 가입 때 자리표시자로 생성된 같은 교회의 "none"(권한 없음)
+       컨텍스트가 남아있으면, 실제 역할을 부여하는 시점에 함께 제거함.
+       그대로 두면 역할이 2개(권한없음 + 그룹장/팀장)가 되어 로그인할 때마다
+       불필요한 역할 선택 화면과 "권한 없음" 항목이 계속 보이게 됨 */
+    if (fullCtx.role !== "none") {
+      contexts = contexts.filter(
+        (c) => !(c.role === "none" && c.churchId === fullCtx.churchId),
+      );
     }
-    t.set(ref, { contexts }, { merge: false });
+    if (!contexts.some((c) => sameContext(c, fullCtx))) {
+      contexts = [...contexts, fullCtx];
+    }
+    t.set(ref, { contexts, ...deriveChurchFields(contexts) }, { merge: false });
   });
 }
 
 async function removeRoleContext(email, ctx) {
+  const fullCtx = { ...ctx, churchId: ctx.churchId || currentChurchId };
   const ref = db.collection("roles").doc(email);
   await db.runTransaction(async (t) => {
     const doc = await t.get(ref);
     if (!doc.exists) return;
     let contexts = extractContexts(doc.data());
-    contexts = contexts.filter((c) => !sameContext(c, ctx));
-    t.set(ref, { contexts }, { merge: false });
+    contexts = contexts.filter((c) => !sameContext(c, fullCtx));
+    t.set(ref, { contexts, ...deriveChurchFields(contexts) }, { merge: false });
   });
 }
 
