@@ -108,7 +108,10 @@ service cloud.firestore {
     match /churches/{churchId} {
       allow read: if true;
       allow create: if signedIn() && request.resource.data.ownerEmail == myEmail();
-      allow update, delete: if isAdminOf(churchId);
+      allow update, delete: if isAdminOf(churchId)
+        && (!("logoUrl" in request.resource.data)
+            || request.resource.data.logoUrl == null
+            || request.resource.data.logoUrl.size() < 800000);
 
       /* 카테고리 - 해당 교회 관리자만 생성/수정/삭제 */
       match /categories/{categoryId} {

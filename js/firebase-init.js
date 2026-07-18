@@ -14,8 +14,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 const db = firebase.firestore();
-/* [신규] 교회 설정 - 로고 이미지 업로드용 Firebase Storage */
-const storage = firebase.storage();
 
 db.settings({
   experimentalForceLongPolling: true,
