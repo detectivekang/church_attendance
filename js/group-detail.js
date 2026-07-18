@@ -3,6 +3,7 @@
    ========================================================= */
 async function enterGroup(groupId, opts = {}) {
   selectedGroupId = groupId;
+  statListExpanded = false;
   const gdoc = await churchCol("groups").doc(groupId).get();
   if (!gdoc.exists) {
     alert("그룹 정보를 찾을 수 없습니다.");

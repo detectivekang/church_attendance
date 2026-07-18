@@ -221,6 +221,9 @@
           <div class="church-code-badge" id="churchCodeBadge" style="display: none">
             교회 코드 <b id="churchCodeText"></b>
             <button class="btn ghost small" id="copyChurchCodeBtn">복사</button>
+            <button class="btn ghost small" id="shareChurchLinkBtn">
+              🔗 가입 링크 공유
+            </button>
           </div>
           <div class="cover-sub">출 석 부</div>
         </div>
@@ -430,6 +433,28 @@
               <button class="btn" id="settingsSaveBtn">저장</button>
             </div>
           </div>
+
+          <!-- [신규] 일반 회원 가입 링크 공유 - 누르면 교회 코드가 자동으로
+               채워진 채로 일반 가입 화면이 바로 열림 -->
+          <div class="settings-share-box">
+            <div class="settings-share-title">교인 가입 초대</div>
+            <p class="settings-share-desc">
+              아래 버튼으로 가입 링크를 공유하면, 링크를 받은 사람이 눌렀을
+              때 교회 코드가 자동으로 입력된 채로 일반 가입 화면이 열립니다.
+              (코드를 직접 안내하지 않아도 됩니다)
+            </p>
+            <div class="settings-share-code">
+              교회 코드 <b id="settingsChurchCodeText"></b>
+            </div>
+            <div class="settings-share-actions">
+              <button class="btn" id="settingsShareLinkBtn">
+                🔗 가입 링크 공유
+              </button>
+              <button class="btn ghost small" id="settingsCopyLinkBtn">
+                링크만 복사
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 운영자: 카테고리 관리 -->
@@ -592,45 +617,17 @@
                 </button>
               </div>
               <div class="summary-cards" id="summaryCards"></div>
-              <h3
-                style="
-                  font-family: &quot;Noto Serif KR&quot;, serif;
-                  font-size: 14px;
-                  margin: 22px 0 6px;
-                "
-              >
+              <h3 class="subsection-title" style="margin-top: 22px">
                 🎂 이번 달 생일자
               </h3>
               <div id="statsBirthdayList"></div>
-              <h3
-                style="
-                  font-family: &quot;Noto Serif KR&quot;, serif;
-                  font-size: 14px;
-                  margin: 22px 0 6px;
-                "
-              >
+              <h3 class="subsection-title" style="margin-top: 22px">
                 주차별 출석 인원 (클릭 시 해당 날짜 출석부로 이동)
               </h3>
               <div class="weekly-chart" id="weeklyChart"></div>
-              <h3
-                style="
-                  font-family: &quot;Noto Serif KR&quot;, serif;
-                  font-size: 14px;
-                  margin: 26px 0 6px;
-                "
-              >
-                팀원별 출석률
-              </h3>
+              <h3 class="subsection-title">팀원별 출석률</h3>
               <div id="statList"></div>
-              <h3
-                style="
-                  font-family: &quot;Noto Serif KR&quot;, serif;
-                  font-size: 14px;
-                  margin: 26px 0 6px;
-                "
-              >
-                연도별 개근·정근 현황
-              </h3>
+              <h3 class="subsection-title">연도별 개근·정근 현황</h3>
               <div id="yearlyStats"></div>
             </div>
           </div>

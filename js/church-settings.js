@@ -15,6 +15,8 @@ async function renderChurchSettingsForm() {
     data.addressDetail || "";
   document.getElementById("settingsChurchPastor").value =
     data.pastorName || "";
+  document.getElementById("settingsChurchCodeText").textContent =
+    data.code || "";
 
   const denomEl = document.getElementById("settingsChurchDenomination");
   const denomEtcEl = document.getElementById("settingsChurchDenominationEtc");

@@ -58,6 +58,21 @@ showRegularSignupBtn.addEventListener("click", () => {
   }
 });
 
+/* [신규] 운영자가 공유한 가입 링크(?code=XXXXXX)로 들어온 경우,
+   일반 가입 화면을 자동으로 열고 교회 코드를 미리 채워줌 */
+(function applySharedChurchCodeFromUrl() {
+  const sharedCode = new URLSearchParams(location.search).get("code");
+  if (!sharedCode) return;
+  document.getElementById("regularSignupCode").value = sharedCode
+    .trim()
+    .toUpperCase();
+  regularSignupBox.style.display = "block";
+  showRegularSignupBtn.classList.add("active");
+  document.getElementById("regularSignupName").focus();
+  /* 새로고침해도 계속 남아있지 않도록 주소창의 쿼리스트링만 정리 */
+  history.replaceState(null, "", location.pathname);
+})();
+
 /* 필수 입력칸이 비어있으면 빨간 테두리로 표시하고 첫 번째 빈 칸에 포커스.
    반환값: 모두 채워져 있으면 true */
 function markRequired(fields) {
@@ -905,6 +920,71 @@ document.getElementById("copyChurchCodeBtn").addEventListener("click", async () 
     alert("교회 코드: " + code);
   }
 });
+
+/* [신규] 일반 가입 링크 공유 - Web Share API가 있으면(주로 모바일) 공유
+   시트를 띄우고, 없으면(대부분의 PC 브라우저) 클립보드로 링크를 복사함 */
+function buildChurchInviteLink(code) {
+  return `${location.origin}${location.pathname}?code=${encodeURIComponent(code)}`;
+}
+
+async function copyTextToClipboard(text, btnEl, doneLabel) {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (btnEl) {
+      const original = btnEl.textContent;
+      btnEl.textContent = doneLabel || "복사됨";
+      setTimeout(() => (btnEl.textContent = original), 1200);
+    }
+  } catch (e) {
+    prompt("아래 내용을 복사해 전달해주세요:", text);
+  }
+}
+
+async function shareChurchInviteLink(code, btnEl) {
+  if (!code) {
+    alert("교회 코드를 아직 발급받지 못했습니다.");
+    return;
+  }
+  const link = buildChurchInviteLink(code);
+  const churchName = (currentChurchData && currentChurchData.name) || "교회";
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "교회 출석부 가입 초대",
+        text: `${churchName} 교회 출석부에 가입해주세요!`,
+        url: link,
+      });
+      return;
+    } catch (e) {
+      /* 사용자가 공유 창을 닫은 경우(AbortError)는 조용히 무시 */
+      if (e && e.name === "AbortError") return;
+    }
+  }
+  await copyTextToClipboard(link, btnEl, "링크 복사됨");
+}
+
+document.getElementById("shareChurchLinkBtn").addEventListener("click", (e) => {
+  const code = document.getElementById("churchCodeText").textContent;
+  shareChurchInviteLink(code, e.currentTarget);
+});
+
+document
+  .getElementById("settingsShareLinkBtn")
+  .addEventListener("click", (e) => {
+    const code = currentChurchData && currentChurchData.code;
+    shareChurchInviteLink(code, e.currentTarget);
+  });
+
+document
+  .getElementById("settingsCopyLinkBtn")
+  .addEventListener("click", (e) => {
+    const code = currentChurchData && currentChurchData.code;
+    if (!code) {
+      alert("교회 코드를 아직 발급받지 못했습니다.");
+      return;
+    }
+    copyTextToClipboard(buildChurchInviteLink(code), e.currentTarget, "복사됨");
+  });
 
 /* [신규] 요금제 토글 (임시 - 실제 결제 연동 전까지 운영자가 직접 전환) */
 document.getElementById("planToggleBtn").addEventListener("click", async () => {

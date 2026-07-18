@@ -1,3 +1,8 @@
+/* [신규] 팀원별 출석률 목록 - 팀원이 많을 때 한 번에 다 보여주지 않고
+   일부만 보여준 뒤 '더보기'로 펼치기 위한 상태 (그룹 진입 시 초기화) */
+const STAT_LIST_COLLAPSE_COUNT = 5;
+let statListExpanded = false;
+
 function presentCount(serviceId) {
   const att = attendance[serviceId] || {};
   return members.filter((m) => normalizeRecord(att[m.id]).present).length;
@@ -150,7 +155,12 @@ function renderStats() {
     })
     .sort((a, b) => b.pct - a.pct || a.m.name.localeCompare(b.m.name, "ko"));
 
-  memberStats.forEach(({ m, pct, donation, bibleMax }) => {
+  const visibleStats =
+    statListExpanded || memberStats.length <= STAT_LIST_COLLAPSE_COUNT
+      ? memberStats
+      : memberStats.slice(0, STAT_LIST_COLLAPSE_COUNT);
+
+  visibleStats.forEach(({ m, pct, donation, bibleMax }) => {
     const row = document.createElement("div");
     row.className = "stat-row";
     let extra = "";
@@ -168,6 +178,22 @@ function renderStats() {
     `;
     statList.appendChild(row);
   });
+
+  if (memberStats.length > STAT_LIST_COLLAPSE_COUNT) {
+    const toggleRow = document.createElement("div");
+    toggleRow.className = "detail-toggle-row";
+    const remaining = memberStats.length - STAT_LIST_COLLAPSE_COUNT;
+    toggleRow.innerHTML = `
+      <button type="button" class="detail-toggle-btn" id="statListToggleBtn">
+        ${statListExpanded ? "접기" : `더보기 (${remaining}명 더 · 총 ${memberStats.length}명)`}
+      </button>
+    `;
+    statList.appendChild(toggleRow);
+    document.getElementById("statListToggleBtn").addEventListener("click", () => {
+      statListExpanded = !statListExpanded;
+      renderStats();
+    });
+  }
   renderYearlyStats();
 }
 
@@ -228,7 +254,7 @@ function renderYearlyStats() {
           총 진행 예배 : ${totalWeeks}회<br>
           주차별 평균 참석 : ${avg}명
         </p>
-        <hr style="border:0; border-top:1px dashed var(--paper-line); margin:12px 0;">
+        <hr style="border:0; border-top:1px solid var(--line-soft); margin:12px 0;">
         <b style="color:var(--stamp-red);">🏆 개근자 (${perfect.length}명)</b>
         <div style="margin:6px 0 14px; font-size:14px; font-weight:500;">
           ${perfect.length ? perfect.map(escapeHtml).join(", ") : '<span style="color:var(--absent-gray); font-style:italic;">없음</span>'}

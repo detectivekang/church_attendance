@@ -11,6 +11,13 @@
   --gold: #b8935f;
   --absent-gray: #a39c8a;
   --present-green: #4c6b4f;
+  /* [신규] 모던 리디자인 - 부드러운 구분선/그림자/라운딩 토큰 */
+  --line-soft: rgba(43, 43, 40, 0.08);
+  --shadow-card: 0 1px 2px rgba(43, 34, 12, 0.05),
+    0 4px 14px rgba(43, 34, 12, 0.06);
+  --shadow-card-hover: 0 6px 20px rgba(43, 34, 12, 0.11);
+  --radius-card: 14px;
+  --radius-btn: 10px;
 }
 * {
   box-sizing: border-box;
@@ -27,6 +34,15 @@ body {
   min-height: 100vh;
   background: var(--paper);
   box-shadow: 0 0 0 1px var(--paper-edge);
+}
+@media (min-width: 640px) {
+  .book {
+    margin: 24px auto;
+    min-height: calc(100vh - 48px);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(43, 34, 12, 0.06), 0 24px 48px -12px rgba(27, 42, 65, 0.22);
+  }
 }
 .cover {
   background: linear-gradient(
@@ -164,7 +180,7 @@ body {
   width: 100%;
   max-width: 360px;
   background: var(--paper);
-  border-radius: 14px;
+  border-radius: 20px;
   padding: 32px 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   text-align: center;
@@ -256,8 +272,9 @@ body {
   text-align: left;
   margin-top: 10px;
   padding: 14px 14px 4px;
-  border: 1px dashed var(--paper-line);
-  border-radius: 8px;
+  background: #fffdf7;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
 }
 .signup-box-desc {
   font-size: 12px;
@@ -282,10 +299,11 @@ body {
   background: rgba(255, 255, 255, 0.06);
   border: none;
   padding: 10px 18px 9px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
   cursor: pointer;
   position: relative;
   top: 1px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .tab.active {
   background: var(--paper);
@@ -304,14 +322,22 @@ body {
   font-size: 13.5px;
   color: var(--ink-soft);
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--line-soft);
   padding: 9px 18px;
   border-radius: 20px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+.admin-tab:hover {
+  border-color: var(--gold);
 }
 .admin-tab.active {
   background: var(--cover-navy);
   color: #f7efda;
+  border-color: var(--cover-navy);
+}
+.admin-tab.active:hover {
   border-color: var(--cover-navy);
 }
 
@@ -332,12 +358,7 @@ body {
 
 .page {
   padding: 26px 28px 60px;
-  background: repeating-linear-gradient(
-    var(--paper) 0px,
-    var(--paper) 37px,
-    var(--paper-line) 38px,
-    var(--paper) 39px
-  );
+  background: var(--paper);
   min-height: 60vh;
 }
 .view {
@@ -383,7 +404,7 @@ h2.section-title {
   color: var(--cover-navy);
   margin: 22px 0 10px;
   padding-top: 14px;
-  border-top: 1px dashed var(--paper-line);
+  border-top: 1px solid var(--line-soft);
 }
 
 /* [신규] 교회 코드 배지 (표지에서 운영자에게만 노출) */
@@ -428,54 +449,71 @@ input[type="password"],
 input[type="date"] {
   font-family: "Noto Sans KR", sans-serif;
   font-size: 13.5px;
-  padding: 9px 12px;
-  border: 1px solid var(--paper-line);
+  padding: 10px 13px;
+  border: 1px solid var(--line-soft);
   background: #fffdf7;
-  border-radius: 6px;
+  border-radius: 9px;
   color: var(--ink);
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 select:focus,
 input:focus {
   border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 147, 95, 0.16);
 }
 button.btn {
   font-family: "Noto Sans KR", sans-serif;
   font-weight: 700;
   font-size: 13px;
-  padding: 9px 16px;
-  border-radius: 6px;
+  padding: 10px 17px;
+  border-radius: var(--radius-btn);
   border: 1px solid var(--cover-navy);
   background: var(--cover-navy);
   color: #f7efda;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease;
 }
 button.btn:hover {
   background: var(--cover-navy-light);
+  box-shadow: 0 4px 12px rgba(27, 42, 65, 0.25);
+}
+button.btn:active {
+  transform: scale(0.97);
 }
 button.btn.ghost {
   background: transparent;
   color: var(--cover-navy);
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--line-soft);
+  box-shadow: none;
 }
 button.btn.ghost:hover {
   border-color: var(--cover-navy);
+  background: rgba(27, 42, 65, 0.04);
+  box-shadow: none;
 }
 button.btn.danger {
   background: transparent;
   color: var(--stamp-red);
-  border: 1px solid var(--stamp-red);
+  border: 1px solid rgba(166, 61, 47, 0.45);
   font-weight: 500;
-  padding: 5px 10px;
+  padding: 6px 11px;
   font-size: 12px;
 }
+button.btn.danger:hover {
+  background: rgba(166, 61, 47, 0.06);
+  box-shadow: none;
+}
 button.btn.small {
-  padding: 5px 10px;
+  padding: 6px 11px;
   font-size: 11.5px;
 }
 button.btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Attendance list */
@@ -484,7 +522,7 @@ button.btn:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 11px 4px;
-  border-bottom: 1px dotted var(--paper-line);
+  border-bottom: 1px solid var(--line-soft);
 }
 .roster-row:last-child {
   border-bottom: none;
@@ -555,16 +593,34 @@ button.btn:disabled {
   font-style: italic;
 }
 
+/* [신규] 출석부 / 팀원명부 / 출석률 목록을 하나의 카드 표면으로 묶어
+   구분선이 카드 안에서만 보이도록 정리 (배경 줄무늬 제거에 따른 정돈) */
+#attendList,
+.member-list,
+#statList {
+  background: #fffdf7;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  padding: 4px 16px;
+  box-shadow: var(--shadow-card);
+}
+#attendList:empty,
+.member-list:empty,
+#statList:empty {
+  display: none;
+}
+
 /* Member roster */
 .member-form {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 14px;
+  padding: 16px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
   margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
 }
 .member-form input {
   flex: 1;
@@ -579,7 +635,10 @@ button.btn:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 10px 4px;
-  border-bottom: 1px dotted var(--paper-line);
+  border-bottom: 1px solid var(--line-soft);
+}
+.member-item:last-child {
+  border-bottom: none;
 }
 .member-item-left {
   display: flex;
@@ -592,8 +651,12 @@ button.btn:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 4px;
-  border-bottom: 1px dotted var(--paper-line);
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.stat-row:last-child,
+.stat-row:has(+ .detail-toggle-row) {
+  border-bottom: none;
 }
 .stat-name {
   width: 110px;
@@ -634,9 +697,10 @@ button.btn:disabled {
 }
 #birthdaySection {
   background: #fdfaf6;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid var(--gold);
+  padding: 16px 18px;
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(184, 147, 95, 0.4);
+  box-shadow: var(--shadow-card);
   margin-top: 20px;
 }
 .week-bar-wrap {
@@ -682,20 +746,22 @@ button.btn:disabled {
   flex: 1;
   min-width: 130px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
-  padding: 14px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
 }
 .summary-card .num {
   font-family: "Noto Serif KR", serif;
   font-size: 26px;
   font-weight: 900;
   color: var(--cover-navy);
+  line-height: 1.25;
 }
 .summary-card .lbl {
   font-size: 11.5px;
   color: var(--ink-soft);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* Category / group cards */
@@ -703,11 +769,12 @@ button.btn:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 14px;
+  padding: 16px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
   margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
 }
 .add-form input {
   flex: 1;
@@ -718,12 +785,18 @@ button.btn:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 15px 18px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
   margin-bottom: 10px;
   flex-wrap: wrap;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.list-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 .list-card-main {
   cursor: pointer;
@@ -738,7 +811,7 @@ button.btn:disabled {
 .list-card-sub {
   font-size: 11.5px;
   color: var(--ink-soft);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 .list-card-actions {
   display: flex;
@@ -797,8 +870,8 @@ button.btn:disabled {
 .role-switcher-menu {
   position: fixed;
   background: var(--paper);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
   min-width: 200px;
   padding: 6px;
@@ -862,8 +935,9 @@ button.btn:disabled {
   gap: 8px;
   margin-bottom: 10px;
   padding: 12px;
-  border: 1px dashed var(--paper-line);
-  border-radius: 8px;
+  background: #fffdf7;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
 }
 .forgot-pw-msg {
   font-size: 12.5px;
@@ -892,8 +966,8 @@ button.btn:disabled {
   max-width: 380px;
   max-height: 82vh;
   background: var(--paper);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 18px;
+  padding: 22px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
@@ -917,8 +991,8 @@ button.btn:disabled {
 .modal-list {
   overflow-y: auto;
   flex: 1;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
   background: #fffdf7;
   margin-bottom: 14px;
   min-height: 60px;
@@ -928,7 +1002,7 @@ button.btn:disabled {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-bottom: 1px dotted var(--paper-line);
+  border-bottom: 1px solid var(--line-soft);
   cursor: pointer;
   font-size: 13.5px;
 }
@@ -936,7 +1010,7 @@ button.btn:disabled {
   border-bottom: none;
 }
 .modal-user-row:hover {
-  background: rgba(184, 147, 95, 0.1);
+  background: rgba(184, 147, 95, 0.12);
 }
 .modal-user-row input {
   flex-shrink: 0;
@@ -978,10 +1052,16 @@ button.btn:disabled {
   resize: vertical;
   font-family: inherit;
   font-size: 13.5px;
-  padding: 8px 10px;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
   background: #fffdf7;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.notice-form textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 147, 95, 0.16);
 }
 .notice-popup-check {
   display: flex;
@@ -1023,12 +1103,13 @@ button.btn:disabled {
   display: flex;
   gap: 18px;
   flex-wrap: wrap;
-  padding: 12px 14px;
+  padding: 13px 16px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
   margin-bottom: 16px;
   font-size: 13px;
+  box-shadow: var(--shadow-card);
 }
 .track-settings label {
   display: flex;
@@ -1147,10 +1228,11 @@ button.btn:disabled {
 
 .overview-box {
   background: #fffdf7;
-  border: 1px solid var(--gold);
-  border-radius: 10px;
-  padding: 16px 18px;
+  border: 1px solid rgba(184, 147, 95, 0.4);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
   margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
 }
 .overview-title {
   font-family: "Noto Serif KR", serif;
@@ -1175,10 +1257,10 @@ button.btn:disabled {
 }
 .birthday-item {
   font-size: 13px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: #fdf6e8;
-  border: 1px dashed var(--gold);
-  border-radius: 6px;
+  border: 1px solid rgba(184, 147, 95, 0.45);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1202,8 +1284,8 @@ button.btn:disabled {
   width: 100%;
   font-size: 12.5px;
   padding: 10px;
-  border: 1px dashed var(--paper-line);
-  border-radius: 6px;
+  border: 1.5px dashed var(--paper-line);
+  border-radius: 10px;
   background: #fffdf7;
   margin-top: 4px;
 }
@@ -1212,7 +1294,7 @@ button.btn:disabled {
   justify-content: space-between;
   padding: 7px 12px;
   font-size: 13px;
-  border-bottom: 1px dotted var(--paper-line);
+  border-bottom: 1px solid var(--line-soft);
 }
 .excel-preview-row.err {
   color: var(--stamp-red);
@@ -1292,6 +1374,10 @@ button.btn:disabled {
 .detail-stats-wrap {
   margin-top: 14px;
   overflow-x: auto;
+  background: #fffdf7;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .detail-stats-table {
   width: 100%;
@@ -1301,8 +1387,8 @@ button.btn:disabled {
 }
 .detail-stats-table th,
 .detail-stats-table td {
-  padding: 8px 10px;
-  border-bottom: 1px dotted var(--paper-line);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line-soft);
   text-align: left;
   white-space: nowrap;
 }
@@ -1310,10 +1396,14 @@ button.btn:disabled {
   color: var(--ink-soft);
   font-weight: 700;
   font-size: 11.5px;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--line-soft);
+}
+.detail-stats-table tr:last-child td {
+  border-bottom: none;
 }
 .detail-stats-table tr.detail-row {
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 .detail-stats-table tr.detail-row:hover td {
   background: rgba(184, 147, 95, 0.08);
@@ -1333,8 +1423,9 @@ button.btn:disabled {
 #excelUploadPreview{
   max-height: 400px; /* 원하는 높이 */
   overflow-y: auto;
-  border: 1px solid var(--paper-line);
-  padding: 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 6px;
 }
 
 /* [신규] 회원가입 - 이용약관/개인정보 동의 체크박스 */
@@ -1343,9 +1434,9 @@ button.btn:disabled {
   flex-direction: column;
   gap: 4px;
   margin: 2px 0 4px;
-  padding: 8px 10px;
-  border: 1px dashed var(--paper-line);
-  border-radius: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
   background: #fffdf7;
 }
 .consent-row {
@@ -1383,10 +1474,10 @@ button.btn:disabled {
   line-height: 1.7;
   color: var(--ink-soft);
   white-space: pre-wrap;
-  padding: 2px 8px 2px 2px;
+  padding: 10px 12px;
   margin-bottom: 12px;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
   background: #fffdf7;
 }
 
@@ -1415,10 +1506,11 @@ button.btn:disabled {
   align-items: center;
   gap: 16px;
   margin-bottom: 22px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .settings-logo-row .brand-logo-wrapper {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -1451,10 +1543,11 @@ button.btn:disabled {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px;
+  padding: 20px;
   background: #fffdf7;
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .settings-field {
   display: flex;
@@ -1492,6 +1585,41 @@ button.btn:disabled {
 }
 .settings-save-msg.success {
   color: var(--present-green);
+}
+
+/* [신규] 교회 설정 - 가입 링크 공유 박스 */
+.settings-share-box {
+  margin-top: 16px;
+  padding: 18px 20px;
+  background: #fffdf7;
+  border: 1px dashed var(--gold);
+  border-radius: var(--radius-card);
+}
+.settings-share-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--cover-navy);
+  margin-bottom: 6px;
+}
+.settings-share-desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+.settings-share-code {
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.settings-share-code b {
+  letter-spacing: 0.08em;
+  color: var(--stamp-red);
+}
+.settings-share-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* [신규] 팀장 전용 - 전체 출석 / 전체 출석 해제 */
