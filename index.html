@@ -11,9 +11,27 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- [신규] PWA - 홈 화면에 설치해서 앱처럼 쓸 수 있도록 -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1b2a41" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="교회출석부" />
   </head>
   <body>
     <!-- 로그인 화면 -->
+    <!-- [신규] 홈 화면 설치 유도 배너 - 이미 설치되어 있거나(standalone),
+         설치를 이미 닫았거나, 이 브라우저가 설치를 지원하지 않으면 숨겨짐 -->
+    <div class="install-banner" id="installBanner" style="display: none">
+      <img src="icon-192.png" alt="" class="install-banner-icon" />
+      <div class="install-banner-text">
+        <b>교회 출석부</b>를 홈 화면에 추가하고 앱처럼 빠르게 열어보세요
+      </div>
+      <button class="btn small" id="installBannerBtn">설치</button>
+      <button class="btn ghost small" id="installBannerCloseBtn">✕</button>
+    </div>
     <div class="login-screen" id="loginScreen">
       <div class="login-card" id="loginCard">
         <div class="brand-logo-wrapper">
@@ -866,6 +884,37 @@
       </div>
     </div>
 
+    <!-- [신규] iOS Safari는 설치 버튼을 프로그램적으로 띄울 수 없어서
+         "공유 → 홈 화면에 추가" 방법을 안내하는 모달 -->
+    <div class="modal-overlay" id="iosInstallModalOverlay" style="display: none">
+      <div class="modal-card legal-modal-card">
+        <div class="modal-title">홈 화면에 추가하기</div>
+        <div class="ios-install-steps">
+          <div class="ios-install-step">
+            <span class="ios-install-num">1</span>
+            <span>
+              하단(또는 상단) 메뉴바의
+              <b>공유 아이콘 <span class="ios-share-icon">⬆️</span></b>
+              을 눌러주세요.
+            </span>
+          </div>
+          <div class="ios-install-step">
+            <span class="ios-install-num">2</span>
+            <span>메뉴에서 <b>"홈 화면에 추가"</b>를 선택해주세요.</span>
+          </div>
+          <div class="ios-install-step">
+            <span class="ios-install-num">3</span>
+            <span><b>"추가"</b>를 누르면 완료! 홈 화면에서 앱처럼 바로 열 수 있어요.</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost small" id="closeIosInstallModalBtn">
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Firebase SDK (compat v10 버그 무한 대기 프리징 대책 롱폴링 완벽 적용 상태유지) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -893,5 +942,6 @@
     <script src="js/stats.js"></script>
     <script src="js/excel.js"></script>
     <script src="js/tabs.js"></script>
+    <script src="js/install-prompt.js"></script>
   </body>
 </html>

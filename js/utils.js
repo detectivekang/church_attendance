@@ -149,6 +149,45 @@ function birthdayDay(birthday) {
 }
 
 /* =========================================================
+   [신규] 자체 확인 모달 (native confirm() 대체)
+   - 일부 모바일 브라우저/인앱 브라우저(카카오톡·네이버 등 웹뷰)는
+     window.confirm()을 아예 지원하지 않거나 항상 취소로 처리해버려서,
+     "버튼을 눌러도 반응이 없는" 것처럼 보이는 문제가 있었음.
+   - 기존 confirm()과 동일하게 await confirmDialog(...)로 쓰면 되고,
+     true/false를 반환함(취소·바깥영역 클릭·ESC는 false).
+   ========================================================= */
+function confirmDialog(message, okText, cancelText) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal-card" style="max-width:320px;">
+        <div class="modal-sub" style="white-space:pre-line;font-size:13.5px;color:var(--ink);margin-bottom:16px;">${escapeHtml(message)}</div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost small" data-act="cancel">${escapeHtml(cancelText || "취소")}</button>
+          <button type="button" class="btn small" data-act="ok">${escapeHtml(okText || "확인")}</button>
+        </div>
+      </div>
+    `;
+    function close(result) {
+      document.removeEventListener("keydown", onKeydown);
+      overlay.remove();
+      resolve(result);
+    }
+    function onKeydown(e) {
+      if (e.key === "Escape") close(false);
+    }
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close(false);
+    });
+    overlay.querySelector('[data-act="cancel"]').addEventListener("click", () => close(false));
+    overlay.querySelector('[data-act="ok"]').addEventListener("click", () => close(true));
+    document.addEventListener("keydown", onKeydown);
+    document.body.appendChild(overlay);
+  });
+}
+
+/* =========================================================
    엑셀 셀의 날짜값을 YYYY-MM-DD 문자열로 정규화
    (생일 업로드, 출석부 업로드 헤더 날짜 파싱에 공용 사용)
    ========================================================= */

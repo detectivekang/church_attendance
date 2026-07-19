@@ -1628,3 +1628,74 @@ button.btn:disabled {
   gap: 8px;
   margin-bottom: 14px;
 }
+
+/* [신규] 홈 화면 설치 유도 배너 */
+.install-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  padding: 10px 12px;
+  background: var(--cover-navy);
+  color: #f7efda;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25);
+}
+.install-banner-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.install-banner-text {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.install-banner-text b {
+  color: var(--gold);
+}
+.install-banner .btn.small {
+  flex-shrink: 0;
+}
+.install-banner .btn.ghost.small {
+  flex-shrink: 0;
+  color: #f7efda;
+  border-color: rgba(247, 239, 218, 0.4);
+  padding: 6px 9px;
+}
+
+/* [신규] iOS 홈 화면 추가 안내 모달 */
+.ios-install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ios-install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.ios-install-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cover-navy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ios-share-icon {
+  display: inline-block;
+}

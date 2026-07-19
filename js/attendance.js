@@ -149,21 +149,34 @@ async function bulkUpdateAttendance(present) {
     att[m.id] = next;
     patch[m.id] = next;
   });
-  await churchCol("attendance").doc(serviceId).set(patch, { merge: true });
+  try {
+    await churchCol("attendance").doc(serviceId).set(patch, { merge: true });
+  } catch (err) {
+    /* [신규] 저장이 실패했는데도 아무 알림 없이 조용히 끝나버리던 문제를
+       고치기 위해, 실패 시에는 반드시 화면에 이유를 보여줌 */
+    alert("출석 저장에 실패했습니다: " + (err && err.message ? err.message : err));
+    return;
+  }
   renderAttendList();
   renderStats();
 }
 
-document.getElementById("attendCheckAllBtn").addEventListener("click", () => {
-  if (!canEditAttendance() || members.length === 0) return;
-  if (!confirm(`${members.length}명 전체를 출석 처리할까요?`)) return;
-  bulkUpdateAttendance(true);
-});
+document
+  .getElementById("attendCheckAllBtn")
+  .addEventListener("click", async () => {
+    if (!canEditAttendance() || members.length === 0) return;
+    /* [수정] 일부 모바일(인앱 브라우저 등)에서 native confirm()이 동작하지
+       않아 버튼을 눌러도 반응이 없던 문제 → 자체 확인 모달로 교체 */
+    const ok = await confirmDialog(`${members.length}명 전체를 출석 처리할까요?`);
+    if (!ok) return;
+    bulkUpdateAttendance(true);
+  });
 
 document
   .getElementById("attendUncheckAllBtn")
-  .addEventListener("click", () => {
+  .addEventListener("click", async () => {
     if (!canEditAttendance() || members.length === 0) return;
-    if (!confirm("전체 팀원의 출석을 해제할까요?")) return;
+    const ok = await confirmDialog("전체 팀원의 출석을 해제할까요?");
+    if (!ok) return;
     bulkUpdateAttendance(false);
   });
