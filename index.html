@@ -916,15 +916,13 @@
     </div>
 
     <!-- Firebase SDK (compat v10 버그 무한 대기 프리징 대책 롱폴링 완벽 적용 상태유지) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- [신규] 다음 우편번호(주소 검색) API - 별도 API 키 불필요 -->
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 
     <!-- 앱 스크립트 (기능별로 분리됨, 순서 중요) -->
-    <script src="js/firebase-init.js"></script>
+    <script src="js/supabase-init.js"></script>
     <script src="js/state.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/navigation.js"></script>
