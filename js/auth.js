@@ -574,12 +574,23 @@ async function ensureUserDoc(user, name, extra) {
     const ref = db.collection("users").doc(user.email);
     const doc = await ref.get();
     if (!doc.exists) {
-      await ref.set({
-        email: user.email,
-        name: name || "",
-        createdAt: Date.now(),
-        ...(extra || {}),
-      });
+      /* [수정] "권한이 갑자기 없어지는" 버그의 실제 원인 - 이 분기는
+         원래 "문서가 진짜로 없을 때만" 타야 하는데, 토큰 갱신 등으로
+         인증 상태가 아주 잠깐 불안정한 순간에 이 get()이 RLS에 걸려
+         빈 결과로 보이면, 문서가 이미 있는데도 "없다"고 오판해서 여기로
+         들어올 수 있음. merge 없이 set()을 하면 그 순간 churchId 등
+         기존 필드가 통째로 날아가 버렸던 것 - 그래서 반드시 merge:true로
+         써서, 설령 이 판단이 틀리더라도 기존 필드(churchId 등)는 절대
+         지워지지 않고 새 필드만 얹어지도록 안전장치를 둠 */
+      await ref.set(
+        {
+          email: user.email,
+          name: name || "",
+          createdAt: Date.now(),
+          ...(extra || {}),
+        },
+        { merge: true },
+      );
       return name || "";
     } else if (name && !doc.data().name) {
       await ref.update({ name, ...(extra || {}) });
@@ -716,15 +727,48 @@ async function resolveRole(user) {
   } catch (e) {
     userDoc = null;
   }
-  const churchId = userDoc && userDoc.exists ? userDoc.data().churchId : null;
+  let churchId = userDoc && userDoc.exists ? userDoc.data().churchId : null;
 
   if (!churchId) {
-    /* 소속 교회가 없음 (예전 방식 가입자 등) - 기존과 동일하게 "권한 없음" 처리 */
-    currentChurchId = null;
-    currentRole = "none";
-    userContexts = [];
-    activeContextIndex = 0;
-    return;
+    /* [수정] "분명히 정상적으로 쓰다가 로그인/로그아웃 몇 번 하면 갑자기
+       권한 승인 대기로 뜨는" 버그의 실제 원인 - users 문서가 어떤 이유로
+       (드문 인증 타이밍 이슈로 인한 ensureUserDoc의 오판 등) churchId를
+       잃어버려도, roles 문서에는 실제 역할(contexts)이 온전히 남아있는
+       경우가 대부분이었음. 그래서 곧바로 "권한 없음" 처리하지 않고,
+       roles 문서에 유효한(= role이 "none"이 아니고 churchId가 있는)
+       컨텍스트가 남아있는지 먼저 확인해서, 있으면 그 churchId로 users
+       문서를 자동 복구한 뒤 정상 로그인 절차를 계속 진행함 */
+    let recoveredChurchId = null;
+    try {
+      const rolesDoc = await db.collection("roles").doc(user.email).get();
+      if (rolesDoc.exists) {
+        const real = extractContexts(rolesDoc.data()).find(
+          (c) => c.role !== "none" && c.churchId,
+        );
+        if (real) recoveredChurchId = real.churchId;
+      }
+    } catch (e) {
+      /* 조회 실패 시엔 복구하지 않고 아래에서 기존과 동일하게 처리 */
+    }
+
+    if (recoveredChurchId) {
+      try {
+        await db
+          .collection("users")
+          .doc(user.email)
+          .update({ churchId: recoveredChurchId });
+      } catch (e) {
+        /* 복구 쓰기가 실패해도 이번 로그인만큼은 정상 진행되도록 계속 함 */
+      }
+      churchId = recoveredChurchId;
+    } else {
+      /* 소속 교회가 없음 (예전 방식 가입자 등) - 기존과 동일하게 "권한 없음" 처리 */
+      currentChurchId = null;
+      currentRole = "none";
+      userContexts = [];
+      activeContextIndex = 0;
+      return;
+    }
   }
 
   let churchDoc;
