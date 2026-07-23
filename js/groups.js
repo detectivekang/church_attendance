@@ -145,8 +145,10 @@ async function renderGroupsView() {
    ========================================================= */
 async function renderCategoryOverview() {
   const cardsEl = document.getElementById("categorySummaryCards");
+  const noteEl = document.getElementById("categorySummaryNote");
   const bdayEl = document.getElementById("categoryBirthdayList");
   if (!cardsEl || !bdayEl) return;
+  if (noteEl) noteEl.style.display = "none";
   if (!selectedCategoryId || groups.length === 0) {
     cardsEl.innerHTML = '<div class="empty">등록된 그룹이 없습니다.</div>';
     bdayEl.innerHTML = "";
@@ -201,6 +203,10 @@ async function renderCategoryOverview() {
     });
 
     const totalMembers = allMembers.length;
+    /* [신규] 한 사람이 이 카테고리 안 여러 그룹에 속해있으면 실제
+       인원보다 부풀려지므로, 이름+생일 기준 중복 제거한 실제 인원수를
+       별도로 계산 */
+    const uniqueMemberCount = countUniqueMembers(allMembers);
     const totalServices = overviewServices.length;
     const avgRate =
       totalServices > 0 && totalMembers > 0
@@ -209,7 +215,7 @@ async function renderCategoryOverview() {
 
     cardsEl.innerHTML = `
       <div class="summary-card"><div class="num">${groups.length}</div><div class="lbl">전체 그룹 수</div></div>
-      <div class="summary-card"><div class="num">${totalMembers}</div><div class="lbl">전체 팀원 수</div></div>
+      <div class="summary-card"><div class="num">${uniqueMemberCount}</div><div class="lbl">전체 인원수 (중복 제거)</div></div>
       <div class="summary-card"><div class="num">${avgRate}%</div><div class="lbl">${overviewYear}년 평균 출석률</div></div>
       ${
         totalDonation > 0
@@ -217,6 +223,14 @@ async function renderCategoryOverview() {
           : ""
       }
     `;
+    if (noteEl) {
+      if (uniqueMemberCount !== totalMembers) {
+        noteEl.textContent = `※ 한 사람이 여러 그룹에 동시에 속해 있을 수 있어(예: 1그룹+2그룹 중복 소속), 그룹별 팀원수를 단순히 합친 값(${totalMembers}명)과 위 "전체 인원수"(${uniqueMemberCount}명, 이름+생일 기준 중복 제거)가 다를 수 있습니다.`;
+        noteEl.style.display = "block";
+      } else {
+        noteEl.style.display = "none";
+      }
+    }
 
     const bdayList = allMembers
       .filter((m) => isBirthdayInCurrentMonth(m.birthday))

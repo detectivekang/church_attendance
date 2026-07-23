@@ -5,10 +5,12 @@ let adminDashboardDetailData = [];
 
 async function renderAdminDashboard() {
   const summaryEl = document.getElementById("adminDashboardSummary");
+  const noteEl = document.getElementById("adminDashboardSummaryNote");
   const bdayEl = document.getElementById("adminDashboardBirthdayList");
   const detailWrap = document.getElementById("adminDashboardDetailWrap");
   if (!summaryEl) return;
   summaryEl.innerHTML = '<div class="empty">불러오는 중...</div>';
+  if (noteEl) noteEl.style.display = "none";
   bdayEl.innerHTML = "";
   detailWrap.innerHTML = "";
 
@@ -78,6 +80,10 @@ async function renderAdminDashboard() {
     });
 
     const totalMembers = allMembers.length;
+    /* [신규] 한 사람이 여러 그룹에 속해있으면 위 totalMembers(그룹별 팀원
+       레코드 합산)는 실제 인원보다 많게 잡힘 - 이름+생일 기준으로 중복
+       제거한 실제 인원수를 별도로 계산 */
+    const uniqueMemberCount = countUniqueMembers(allMembers);
     const totalServices = yearServices.length;
     const avgRate =
       totalServices > 0 && totalMembers > 0
@@ -87,7 +93,7 @@ async function renderAdminDashboard() {
     summaryEl.innerHTML = `
       <div class="summary-card"><div class="num">${allCategories.length}</div><div class="lbl">전체 카테고리 수</div></div>
       <div class="summary-card"><div class="num">${allGroups.length}</div><div class="lbl">전체 그룹 수</div></div>
-      <div class="summary-card"><div class="num">${totalMembers}</div><div class="lbl">전체 팀원 수</div></div>
+      <div class="summary-card"><div class="num">${uniqueMemberCount}</div><div class="lbl">전체 인원수 (중복 제거)</div></div>
       <div class="summary-card"><div class="num">${avgRate}%</div><div class="lbl">${year}년 평균 출석률</div></div>
       ${
         totalDonation > 0
@@ -95,6 +101,14 @@ async function renderAdminDashboard() {
           : ""
       }
     `;
+    if (noteEl) {
+      if (uniqueMemberCount !== totalMembers) {
+        noteEl.textContent = `※ 한 사람이 여러 그룹에 동시에 속해 있을 수 있어(예: 1그룹+2그룹 중복 소속), 그룹별 팀원수를 단순히 합친 값(${totalMembers}명)과 위 "전체 인원수"(${uniqueMemberCount}명, 이름+생일 기준 중복 제거)가 다를 수 있습니다.`;
+        noteEl.style.display = "block";
+      } else {
+        noteEl.style.display = "none";
+      }
+    }
 
     const bdayList = allMembers
       .filter((m) => isBirthdayInCurrentMonth(m.birthday))

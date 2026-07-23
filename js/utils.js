@@ -68,6 +68,19 @@ function canManageCategories() {
   return currentRole === "admin";
 }
 
+/* [신규] 한 사람이 여러 그룹(팀)에 동시에 소속될 수 있어서, 그룹별 팀원
+   레코드를 단순히 다 더하면 실제 인원수보다 부풀려짐 (예: A가 1그룹과
+   2그룹에 모두 속해 있으면 팀원 "2명"으로 잡힘). 이름+생일을 사람을
+   구분하는 키로 써서 중복을 제거한 "실제 인원수"를 구함.
+   주의: 생일을 등록 안 했고 이름도 같은 두 사람은(예: 동명이인) 한
+   사람으로 합쳐질 수 있음 - 정확한 식별자가 아니라 근사치임. */
+function memberIdentityKey(m) {
+  return `${(m.name || "").trim()}|${m.birthday || ""}`;
+}
+function countUniqueMembers(list) {
+  return new Set(list.map(memberIdentityKey)).size;
+}
+
 /* [신규] 이름 가나다순 정렬 공용 헬퍼. 모든 목록(카테고리/그룹/팀원/유저)에서
    동일한 규칙(ko locale)으로 정렬해 화면마다 순서가 다르지 않도록 함. */
 function sortByName(arr, nameFn) {
