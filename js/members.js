@@ -71,7 +71,7 @@ function renderMembers() {
         <div class="roster-name-block">
           <div class="roster-name-line">
             <span class="roster-num">${idx + 1}.</span>
-            <span class="roster-name">${escapeHtml(m.name)}${m.isLeader ? '<span class="leader-tag">팀장</span>' : ""}</span>
+            <span class="roster-name">${escapeHtml(m.name)}${m.isLeader ? '<span class="leader-tag">팀장</span>' : ""}${m.longTermAbsent ? '<span class="longterm-tag">장기결석</span>' : ""}</span>
           </div>
           ${m.birthday ? `<span class="roster-birthday">🎂 ${escapeHtml(fmtBirthday(m.birthday))}</span>` : ""}
         </div>
@@ -79,6 +79,7 @@ function renderMembers() {
       ${
         editable && !m.isLeader
           ? `<div class="member-item-actions">
+              <button class="btn ghost small" data-longterm="${m.id}">${m.longTermAbsent ? "장기결석 해제" : "장기결석 지정"}</button>
               <button class="btn ghost small" data-edit="${m.id}">수정</button>
               <button class="btn danger" data-id="${m.id}">삭제</button>
             </div>`
@@ -89,6 +90,39 @@ function renderMembers() {
   });
 
   if (!editable) return;
+
+  list.querySelectorAll("[data-longterm]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.longterm;
+      const m = members.find((x) => x.id === id);
+      if (!m) return;
+      const turningOn = !m.longTermAbsent;
+      const ok = await confirmDialog(
+        turningOn
+          ? `${m.name} 님을 장기 결석자로 지정할까요? 출석 관리 목록에서 빠집니다.`
+          : `${m.name} 님의 장기 결석 지정을 해제할까요? 출석 관리 목록에 다시 나타납니다.`,
+      );
+      if (!ok) return;
+      btn.disabled = true;
+      try {
+        await churchCol("members")
+          .doc(id)
+          .update({
+            longTermAbsent: turningOn,
+            longTermAbsentSince: turningOn ? todayStr() : null,
+            longTermAbsentAuto: false,
+          });
+        m.longTermAbsent = turningOn;
+        m.longTermAbsentSince = turningOn ? todayStr() : null;
+        renderMembers();
+        renderAttendList();
+        renderStats();
+      } catch (err) {
+        alert("변경 중 에러가 발생했습니다: " + err.message);
+        btn.disabled = false;
+      }
+    });
+  });
 
   list.querySelectorAll("button.danger").forEach((btn) => {
     btn.addEventListener("click", async () => {

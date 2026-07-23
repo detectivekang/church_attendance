@@ -1136,6 +1136,8 @@ button.btn:disabled {
 .member-item-actions {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .member-edit-form {
   display: flex;
@@ -1346,6 +1348,20 @@ button.btn:disabled {
   color: var(--stamp-red-dark);
   background: rgba(184, 147, 95, 0.22);
   border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* [신규] 장기 결석자 표시 태그 */
+.longterm-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--absent-gray);
+  background: rgba(120, 120, 120, 0.14);
+  border: 1px solid var(--absent-gray);
   border-radius: 8px;
   padding: 1px 7px;
   margin-left: 6px;

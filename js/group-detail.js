@@ -27,6 +27,7 @@ async function enterGroup(groupId, opts = {}) {
   selectedYear = new Date().getFullYear();
   services = generateSundaysForYear(selectedYear);
   await Promise.all([loadMembers(groupId), loadAttendanceForServices()]);
+  await autoUpdateLongTermAbsentees();
 
   const today = todayStr();
   const closest = services.reduce(
