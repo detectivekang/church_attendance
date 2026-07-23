@@ -26,8 +26,14 @@ async function enterGroup(groupId, opts = {}) {
 
   selectedYear = new Date().getFullYear();
   services = generateSundaysForYear(selectedYear);
-  await Promise.all([loadMembers(groupId), loadAttendanceForServices()]);
+  await Promise.all([
+    loadMembers(groupId),
+    loadAttendanceForServices(),
+    loadPrayers(groupId),
+  ]);
   await autoUpdateLongTermAbsentees();
+  /* [신규] 다른 그룹을 보다가 들어온 경우를 대비해 펼침 상태 초기화 */
+  expandedPrayerMemberIds = new Set();
 
   const today = todayStr();
   const closest = services.reduce(
@@ -83,6 +89,7 @@ async function enterGroup(groupId, opts = {}) {
   renderAttendList();
   renderMembers();
   renderStats();
+  renderPrayerView();
   showMain("groupdetail");
 
   if (!opts.skipHistory) {

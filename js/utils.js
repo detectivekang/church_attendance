@@ -56,6 +56,11 @@ function canEditAttendance() {
 function canManageMembers() {
   return currentRole === "leader";
 }
+/* [신규] 기도제목 작성/수정/삭제는 해당 팀의 팀장만. 그룹장(operator)·
+   운영자(admin)는 팀원명부와 동일하게 조회만 가능(직접 관리는 팀장 몫) */
+function canManagePrayers() {
+  return currentRole === "leader";
+}
 function canManageGroups() {
   return currentRole === "admin" || currentRole === "operator";
 }

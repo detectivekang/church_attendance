@@ -1738,3 +1738,134 @@ button.btn:disabled {
 .ios-share-icon {
   display: inline-block;
 }
+
+/* =========================================================
+   [신규] 팀원별 기도제목
+   ========================================================= */
+.prayer-member-block {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  margin-bottom: 10px;
+  background: #fffdf7;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.prayer-member-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.prayer-member-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prayer-member-name {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+.prayer-count-badge {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  background: var(--paper-edge);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.prayer-important-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--stamp-red-dark);
+  background: rgba(166, 61, 47, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.prayer-toggle-arrow {
+  color: var(--ink-soft);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.prayer-member-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.prayer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.prayer-card {
+  position: relative;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.prayer-card.important {
+  border-color: var(--stamp-red);
+  background: #fff6f0;
+}
+.prayer-badge-important {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--stamp-red);
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+.prayer-card-content {
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.prayer-card-meta {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+.prayer-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.prayer-add-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--paper-line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prayer-add-input {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  resize: vertical;
+}
+.prayer-add-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.prayer-important-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}

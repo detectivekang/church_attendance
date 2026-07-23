@@ -568,6 +568,7 @@
           <div class="tabbar">
             <button class="tab active" data-view="attend">출석체크</button>
             <button class="tab" data-view="members">팀원명부</button>
+            <button class="tab" data-view="prayer">기도제목</button>
             <button class="tab" data-view="stats">통계</button>
           </div>
 
@@ -630,10 +631,23 @@
               <div class="member-list" id="memberList"></div>
             </div>
 
+            <!-- [신규] 팀원별 기도제목 -->
+            <div class="view" id="view-prayer">
+              <h2 class="section-title">
+                <span class="idx">03</span> 팀원별 기도제목
+              </h2>
+              <p class="section-desc">
+                팀원 이름을 눌러 기도제목을 확인하고 기록하세요. ⭐ 중요
+                표시한 기도제목은 맨 위에 고정되고, 그룹장·운영자도 이
+                화면에서 함께 확인할 수 있습니다.
+              </p>
+              <div id="prayerMemberList"></div>
+            </div>
+
             <!-- 통계 -->
             <div class="view" id="view-stats">
               <h2 class="section-title">
-                <span class="idx">03</span> 출석 통계
+                <span class="idx">04</span> 출석 통계
               </h2>
               <p class="section-desc">
                 팀원별 출석률과 주차별 출석 인원, 개근·정근 현황을 확인하세요.
@@ -952,6 +966,7 @@
     <script src="js/groups.js"></script>
     <script src="js/members.js"></script>
     <script src="js/group-detail.js"></script>
+    <script src="js/prayers.js"></script>
     <script src="js/attendance.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/excel.js"></script>

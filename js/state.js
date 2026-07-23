@@ -51,3 +51,10 @@ let categoryDetailOpen = false;
 
 /* [신규] 공지사항 관리 화면용 캐시 (관리자 모달에서만 사용) */
 let notices = [];
+
+/* [신규] 팀원별 기도제목 - 그룹 상세의 "기도제목" 탭에서 사용.
+   prayers: 현재 그룹에 속한 기도제목 전체(모든 팀원 것 포함) 캐시.
+   expandedPrayerMemberIds: 카드 형태로 접혀있는 팀원별 기도제목 목록 중
+   현재 펼쳐진 팀원 id들 (여러 명 동시에 펼쳐볼 수 있게 Set으로 관리) */
+let prayers = [];
+let expandedPrayerMemberIds = new Set();

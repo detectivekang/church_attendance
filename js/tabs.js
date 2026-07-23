@@ -16,5 +16,6 @@ document.querySelectorAll("#main-groupdetail .tab").forEach((tab) => {
       editingMemberId = null;
       renderMembers();
     }
+    if (tab.dataset.view === "prayer") renderPrayerView();
   });
 });
