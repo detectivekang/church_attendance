@@ -18,6 +18,18 @@ const SUPABASE_ANON_KEY = "sb_publishable_Yn3lJNQj2leqFfFL0-_LXQ_4Wxx2J-b";
 
 const ADMIN_EMAIL = "kangseabich@naver.com";
 
+/* [복구] 새 교회에 발급할 가입 코드 (대문자+숫자 6자리, 헷갈리는 0/O/1/I 제외)
+   - Firebase/Supabase와 무관한 순수 앱 로직인데, firebase-init.js에서
+     supabase-init.js로 옮기면서 실수로 빠졌던 함수 */
+function generateChurchCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
 });

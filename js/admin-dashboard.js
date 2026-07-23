@@ -171,6 +171,7 @@ function renderAdminDashboardDetailTable() {
   }
   const anyDonation = adminDashboardDetailData.some((d) => d.group.trackDonation);
   wrap.innerHTML = `
+    <div class="detail-stats-wrap">
     <table class="detail-stats-table">
       <thead>
         <tr>
@@ -199,6 +200,7 @@ function renderAdminDashboardDetailTable() {
           .join("")}
       </tbody>
     </table>
+    </div>
   `;
   wrap.querySelectorAll(".detail-row").forEach((row) => {
     row.addEventListener("click", () => {

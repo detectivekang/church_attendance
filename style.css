@@ -1622,6 +1622,29 @@ button.btn:disabled {
   flex-wrap: wrap;
 }
 
+/* [신규] 공동 운영자 목록 */
+.settings-admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.settings-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.settings-admin-row .owner-tag {
+  font-size: 10.5px;
+  color: var(--stamp-red);
+  border: 1px solid var(--stamp-red);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 700;
+}
+
+
 /* [신규] 팀장 전용 - 전체 출석 / 전체 출석 해제 */
 .attend-bulk-toolbar {
   display: flex;

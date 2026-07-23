@@ -35,7 +35,84 @@ async function renderChurchSettingsForm() {
   document.getElementById("settingsSaveMsg").className = "settings-save-msg";
   document.getElementById("settingsLogoMsg").textContent = "";
   document.getElementById("settingsLogoMsg").className = "settings-logo-msg";
+
+  await renderAdminList();
 }
+
+/* =========================================================
+   [신규] 공동 운영자 관리
+   - 교회 문서의 adminEmails 배열로 관리하며, 처음 만든 사람(ownerEmail)은
+     항상 포함되도록 강제해 실수로 운영자가 0명이 되는 것을 막음
+   ========================================================= */
+function normalizeAdminEmails(church) {
+  const owner = church && church.ownerEmail;
+  const list = Array.isArray(church && church.adminEmails)
+    ? church.adminEmails.filter(Boolean)
+    : [];
+  if (owner && !list.includes(owner)) list.unshift(owner);
+  return list;
+}
+
+async function renderAdminList() {
+  const wrap = document.getElementById("settingsAdminList");
+  if (!wrap) return;
+  const data = currentChurchData || {};
+  const admins = normalizeAdminEmails(data);
+  if (usersList.length === 0) await loadUsers();
+  wrap.innerHTML = admins
+    .map(
+      (email) => `
+        <div class="settings-admin-row">
+          <span>${escapeHtml(userNameOf(email))} (${escapeHtml(email)})</span>
+          ${email === data.ownerEmail ? '<span class="owner-tag">개설자</span>' : ""}
+        </div>
+      `,
+    )
+    .join("");
+}
+
+document
+  .getElementById("settingsAssignAdminBtn")
+  .addEventListener("click", async () => {
+    if (currentRole !== "admin" || !currentChurchId) return;
+    const data = currentChurchData || {};
+    const before = normalizeAdminEmails(data);
+    const result = await openUserPicker({
+      title: "공동 운영자 지정",
+      sub: "가입된 사용자 중 이 교회의 공동 운영자를 선택하세요. (여러 명 선택 가능, 개설자는 제외할 수 없습니다)",
+      multi: true,
+      selected: before,
+    });
+    if (result === null) return;
+
+    /* 개설자는 목록에서 빼더라도 항상 유지 */
+    const after = data.ownerEmail
+      ? Array.from(new Set([data.ownerEmail, ...result]))
+      : result;
+
+    const removed = before.filter((e) => !after.includes(e));
+    const added = after.filter((e) => !before.includes(e));
+
+    const btn = document.getElementById("settingsAssignAdminBtn");
+    btn.disabled = true;
+    btn.textContent = "저장 중...";
+    try {
+      for (const email of removed) {
+        await removeRoleContext(email, { role: "admin" }).catch(() => {});
+      }
+      for (const email of added) {
+        await addRoleContext(email, { role: "admin" });
+      }
+      await churchDocRef().update({ adminEmails: after });
+      if (currentChurchData) currentChurchData.adminEmails = after;
+      await renderAdminList();
+    } catch (err) {
+      alert("공동 운영자 지정 중 오류가 발생했습니다: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "공동 운영자 지정";
+    }
+  });
 
 document
   .getElementById("settingsChurchDenomination")
