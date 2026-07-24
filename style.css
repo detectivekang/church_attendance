@@ -1976,3 +1976,20 @@ button.btn:disabled {
 .login-screen.signup-complete-mode #requiredNoteSocial {
   display: block;
 }
+
+/* [신규] 인앱 브라우저 경고 배너 */
+.inapp-browser-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff6e5;
+  border: 1px solid #f0d9a0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}

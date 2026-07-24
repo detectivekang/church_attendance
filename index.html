@@ -41,6 +41,22 @@
           <img src="icon.jpg" alt="교회 출석부" class="brand-logo" />
         </div>
         <div class="login-title">교회 출석부<span>로 그 인</span></div>
+
+        <!-- [신규] 카카오톡 등 인앱 브라우저에서 열렸을 때만 보이는 안내 -->
+        <div class="inapp-browser-banner" id="inappBrowserBanner">
+          <span
+            >지금 사용 중인 인앱 브라우저에서는 소셜 로그인이 제대로 동작하지
+            않을 수 있어요.</span
+          >
+          <button
+            type="button"
+            class="btn ghost small"
+            id="openExternalBrowserBtn"
+          >
+            외부 브라우저에서 열기
+          </button>
+        </div>
+
         <div id="emailLoginFields">
           <input
             type="email"
@@ -152,26 +168,9 @@
             </button>
           </div>
           <input type="hidden" id="churchSignupZonecode" />
-          <input
-            type="text"
-            id="churchSignupAddressDetail"
-            placeholder="상세주소 * (동/층/호 등)"
-          />
           <select id="churchSignupDenomination">
             <option value="">교단 선택 (선택 입력)</option>
-            <option value="대한예수교장로회(합동)">
-              대한예수교장로회(합동)
-            </option>
-            <option value="대한예수교장로회(통합)">
-              대한예수교장로회(통합)
-            </option>
-            <option value="대한예수교장로회(고신)">
-              대한예수교장로회(고신)
-            </option>
-            <option value="대한예수교장로회(백석)">
-              대한예수교장로회(백석)
-            </option>
-            <option value="한국기독교장로회">한국기독교장로회</option>
+            <option value="장로회">장로회</option>
             <option value="기독교대한감리회">기독교대한감리회</option>
             <option value="기독교대한성결교회">기독교대한성결교회</option>
             <option value="기독교대한하나님의성회">

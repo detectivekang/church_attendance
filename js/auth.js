@@ -28,9 +28,57 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
      대시보드의 "Custom OAuth2 Provider" 기능으로 식별자를
      custom:naver 로 등록해두어야 아래 코드가 동작함 (자세한 설정
      방법은 별도로 안내) */
+/* [신규] 카카오톡/네이버/인스타그램 등 인앱 브라우저 안에서는 쿠키·팝업
+   제약 때문에 소셜 로그인이 제대로 동작하지 않는 경우가 많음(카카오톡
+   인앱 브라우저에서 "카카오로 계속하기"를 눌러도 로그인이 깨지는 문제가
+   대표적). 인앱 브라우저를 감지해서, 소셜 로그인 버튼을 누르면 그
+   서비스로 곧장 보내는 대신 외부(기본) 브라우저로 먼저 빠져나가게 함 */
+function detectInAppBrowser() {
+  const ua = navigator.userAgent || "";
+  if (/KAKAOTALK/i.test(ua)) return "kakaotalk";
+  if (/NAVER\(/i.test(ua)) return "naver";
+  if (/Instagram/i.test(ua)) return "instagram";
+  if (/FBAN|FBAV/i.test(ua)) return "facebook";
+  return null;
+}
+function openInExternalBrowser() {
+  const url = window.location.href;
+  const kind = detectInAppBrowser();
+  if (kind === "kakaotalk") {
+    /* 카카오가 공식 제공하는 "외부 브라우저로 열기" 스킴 */
+    window.location.href =
+      "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
+    return;
+  }
+  if (kind === "naver") {
+    window.location.href =
+      "naversearchapp://openBrowser?url=" + encodeURIComponent(url);
+    return;
+  }
+  /* 그 외(인스타그램/페이스북 등)는 공식 스킴이 마땅치 않아, 새 탭 시도로 대체 */
+  window.open(url, "_blank");
+}
+(function showInAppBrowserBannerIfNeeded() {
+  if (detectInAppBrowser()) {
+    document.getElementById("inappBrowserBanner").style.display = "flex";
+  }
+})();
+document
+  .getElementById("openExternalBrowserBtn")
+  .addEventListener("click", openInExternalBrowser);
+
 document.querySelectorAll("[data-oauth-provider]").forEach((btn) => {
   btn.addEventListener("click", async () => {
     const provider = btn.dataset.oauthProvider;
+    if (detectInAppBrowser()) {
+      /* 인앱 브라우저에서는 소셜 로그인이 깨지는 경우가 많아, 시도하지
+         않고 바로 외부 브라우저로 내보냄 */
+      openInExternalBrowser();
+      return;
+    }
+    /* [신규] 소셜 로그인은 페이지가 완전히 새로고침되며 돌아오므로,
+       지금까지 입력해둔 이름·교회 코드 등을 미리 저장해둠 */
+    saveSignupDraftBeforeOAuth();
     try {
       await auth.signInWithOAuth(provider);
     } catch (e) {
@@ -81,10 +129,17 @@ showRegularSignupBtn.addEventListener("click", () => {
 });
 
 /* [신규] 운영자가 공유한 가입 링크(?code=XXXXXX)로 들어온 경우,
-   일반 가입 화면을 자동으로 열고 교회 코드를 미리 채워줌 */
+   일반 가입 화면을 자동으로 열고 교회 코드를 미리 채워줌.
+   [수정] 소셜 로그인(구글/카카오/네이버) 인증을 마치고 돌아올 때도
+   Supabase가 같은 이름의 ?code= 파라미터(OAuth 인가 코드)를 붙여서
+   돌아오는데, 그걸 초대 코드로 착각해서 채워넣으면 안 됨 - OAuth
+   콜백에는 항상 ?state=도 함께 붙으므로, state가 있으면 OAuth
+   콜백으로 보고 이 자동채움을 건너뜀 (실제 초대 코드 복원은 아래
+   restoreSignupDraft()가 세션스토리지로 별도 처리함) */
 (function applySharedChurchCodeFromUrl() {
-  const sharedCode = new URLSearchParams(location.search).get("code");
-  if (!sharedCode) return;
+  const params = new URLSearchParams(location.search);
+  const sharedCode = params.get("code");
+  if (!sharedCode || params.get("state")) return;
   document.getElementById("regularSignupCode").value = sharedCode
     .trim()
     .toUpperCase();
@@ -94,6 +149,84 @@ showRegularSignupBtn.addEventListener("click", () => {
   /* 새로고침해도 계속 남아있지 않도록 주소창의 쿼리스트링만 정리 */
   history.replaceState(null, "", location.pathname);
 })();
+
+/* [신규] 소셜 로그인 버튼을 누르는 순간, 지금 입력해 둔 이름·교회코드
+   (또는 교회 가입 정보)를 세션스토리지에 저장해뒀다가, 카카오/구글/네이버
+   인증을 마치고 이 페이지로 돌아왔을 때 그대로 복원해줌. 소셜 로그인은
+   외부 사이트로 갔다가 페이지가 완전히 새로고침되며 돌아오기 때문에,
+   이렇게 해두지 않으면 입력해뒀던 교회 코드 등이 전부 날아가버림 */
+function saveSignupDraftBeforeOAuth() {
+  const box = churchSignupBox.style.display !== "none"
+    ? "church"
+    : regularSignupBox.style.display !== "none"
+      ? "regular"
+      : null;
+  if (!box) return;
+  const val = (id) => (document.getElementById(id) || {}).value || "";
+  const draft = {
+    box,
+    churchSignupName: val("churchSignupName"),
+    churchSignupChurchName: val("churchSignupChurchName"),
+    churchSignupAddress: val("churchSignupAddress"),
+    churchSignupZonecode: val("churchSignupZonecode"),
+    churchSignupDenomination: val("churchSignupDenomination"),
+    churchSignupDenominationEtc: val("churchSignupDenominationEtc"),
+    churchSignupPastor: val("churchSignupPastor"),
+    regularSignupName: val("regularSignupName"),
+    regularSignupCode: val("regularSignupCode"),
+  };
+  try {
+    sessionStorage.setItem("oauthSignupDraft", JSON.stringify(draft));
+  } catch (e) {
+    /* 세션스토리지를 못 쓰는 환경이면 그냥 복원을 포기함 (치명적이지 않음) */
+  }
+}
+
+/* 소셜 로그인에서 돌아온 뒤 위에서 저장해둔 값들을 되살림.
+   showSignupCompletionUI()에서 호출됨 */
+function restoreSignupDraft() {
+  let raw;
+  try {
+    raw = sessionStorage.getItem("oauthSignupDraft");
+    sessionStorage.removeItem("oauthSignupDraft");
+  } catch (e) {
+    return;
+  }
+  if (!raw) return;
+  let draft;
+  try {
+    draft = JSON.parse(raw);
+  } catch (e) {
+    return;
+  }
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && v) el.value = v;
+  };
+  if (draft.box === "church") {
+    churchSignupBox.style.display = "block";
+    showChurchSignupBtn.classList.add("active");
+  } else if (draft.box === "regular") {
+    regularSignupBox.style.display = "block";
+    showRegularSignupBtn.classList.add("active");
+  }
+  set("churchSignupName", draft.churchSignupName);
+  set("churchSignupChurchName", draft.churchSignupChurchName);
+  set("churchSignupAddress", draft.churchSignupAddress);
+  set("churchSignupZonecode", draft.churchSignupZonecode);
+  set("churchSignupDenomination", draft.churchSignupDenomination);
+  set("churchSignupDenominationEtc", draft.churchSignupDenominationEtc);
+  set("churchSignupPastor", draft.churchSignupPastor);
+  set("regularSignupName", draft.regularSignupName);
+  set("regularSignupCode", draft.regularSignupCode);
+  if (
+    draft.churchSignupDenomination === "기타" &&
+    draft.churchSignupDenominationEtc
+  ) {
+    document.getElementById("churchSignupDenominationEtc").style.display =
+      "block";
+  }
+}
 
 /* 필수 입력칸이 비어있으면 빨간 테두리로 표시하고 첫 번째 빈 칸에 포커스.
    반환값: 모두 채워져 있으면 true */
@@ -113,7 +246,6 @@ function markRequired(fields) {
   "churchSignupName",
   "churchSignupChurchName",
   "churchSignupAddress",
-  "churchSignupAddressDetail",
   "churchSignupDenominationEtc",
   "regularSignupName",
   "regularSignupCode",
@@ -139,7 +271,6 @@ document
         document.getElementById("churchSignupAddress").classList.remove(
           "input-invalid",
         );
-        document.getElementById("churchSignupAddressDetail").focus();
       },
     }).open();
   });
@@ -237,13 +368,10 @@ document
     const nameEl = document.getElementById("churchSignupName");
     const churchNameEl = document.getElementById("churchSignupChurchName");
     const addressEl = document.getElementById("churchSignupAddress");
-    const addressDetailEl = document.getElementById(
-      "churchSignupAddressDetail",
-    );
     const denomEl = document.getElementById("churchSignupDenomination");
     const denomEtcEl = document.getElementById("churchSignupDenominationEtc");
     const pastorEl = document.getElementById("churchSignupPastor");
-    if (!markRequired([nameEl, churchNameEl, addressEl, addressDetailEl])) {
+    if (!markRequired([nameEl, churchNameEl, addressEl])) {
       errEl.textContent =
         "이름 · 교회 이름 · 주소를 모두 입력하세요. (주소는 '주소 검색' 버튼으로 검색해주세요)";
       return;
@@ -280,10 +408,12 @@ document
          [신규] 전국에 같은 이름의 교회가 여러 곳 있을 수 있으므로, 이름만으로는
          막지 않고 이름+주소(우편번호+상세주소)가 완전히 같을 때만 차단함. 이름은
          같은데 주소가 다르면 "다른 교회가 맞는지" 한 번 확인만 받고 진행시킴 */
+      /* [수정] 상세주소 입력칸을 없애면서, 중복 판정용 addressKey도
+         도로명주소만으로 계산하도록 단순화 */
       const churchName = churchNameEl.value.trim();
       const nameKey = churchName.replace(/\s+/g, "").toLowerCase();
-      const addressDetail = addressDetailEl.value.trim();
-      const addressKey = `${addressEl.value.trim()} ${addressDetail}`
+      const addressKey = addressEl.value
+        .trim()
         .replace(/\s+/g, "")
         .toLowerCase();
       const dupSnap = await db
@@ -379,7 +509,6 @@ document
           createdAt: Date.now(),
           /* [신규] 주소/교단/담임목사 - 동명 교회 구분 및 기본 정보 */
           address: addressEl.value.trim(),
-          addressDetail,
           zonecode: document.getElementById("churchSignupZonecode").value,
           addressKey,
           denomination:
@@ -700,6 +829,7 @@ function showSignupCompletionUI() {
   loginScreenEl.classList.add("signup-complete-mode");
   document.getElementById("completeLoggedInEmail").textContent =
     currentUser.email;
+  restoreSignupDraft();
 }
 
 document.getElementById("completeLogoutLink").addEventListener("click", () => {
@@ -715,6 +845,18 @@ document.getElementById("completeLogoutLink").addEventListener("click", () => {
    분리해 회원가입 처리가 모든 문서 작성을 끝낸 뒤 명시적으로 다시
    호출해 최신 상태로 재라우팅할 수 있게 함. */
 async function routeAfterAuth(user) {
+  /* [신규] 카카오 로그인은 "카카오계정(이메일)" 동의항목이 활성화돼
+     있지 않으면 이메일을 아예 안 돌려줌. 이 앱은 이메일을 계정의
+     기본 키로 쓰는 구조라, 이메일이 없는 상태로 그냥 진행하면
+     "users/undefined" 같은 문서를 만들며 조용히 다 깨져버림. 그래서
+     이메일이 없으면 여기서 바로 멈추고 명확한 안내와 함께 로그아웃시킴 */
+  if (!user.email) {
+    alert(
+      "카카오 계정에서 이메일 제공에 동의하지 않으면 로그인을 계속 진행할 수 없습니다.\n다시 시도할 때 이메일 제공에 동의해주세요.",
+    );
+    await auth.signOut();
+    return;
+  }
   const userName = await ensureUserDoc(user);
   document.getElementById("userEmailLabel").textContent = userName || user.email;
   selectedCategoryId = null;
