@@ -20,7 +20,7 @@ db.settings({
   experimentalAutoDetectLongPolling: false,
 });
 
-const ADMIN_EMAIL = "kangseabich@naver.com";
+const ADMIN_EMAIL = "kangseabich222@naver.com";
 
 /* =========================================================
    [신규] 멀티테넌트 - 교회별 데이터는 churches/{currentChurchId}

@@ -1869,3 +1869,110 @@ button.btn:disabled {
   font-size: 12.5px;
   color: var(--ink-soft);
 }
+
+/* =========================================================
+   [신규] 소셜 로그인 (구글/카카오/네이버) + 가입 완료 안내
+   ========================================================= */
+.oauth-section {
+  margin-top: 4px;
+}
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 10px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+.oauth-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: var(--ink);
+}
+.oauth-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.oauth-google .oauth-btn-icon {
+  background: #fff;
+  border: 1px solid var(--line-soft);
+  color: #4285f4;
+}
+.oauth-kakao {
+  background: #fee500;
+  border-color: #fee500;
+  color: #191600;
+}
+.oauth-kakao .oauth-btn-icon {
+  background: #191600;
+  color: #fee500;
+}
+.oauth-naver {
+  background: #03c75a;
+  border-color: #03c75a;
+  color: #fff;
+}
+.oauth-naver .oauth-btn-icon {
+  background: #fff;
+  color: #03c75a;
+}
+
+.signup-complete-banner {
+  display: none;
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eef7ee;
+  border: 1px solid #b9dfb9;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.signup-complete-banner #completeLoggedInEmail {
+  font-weight: 700;
+}
+.signup-complete-banner .link-text {
+  margin-left: 4px;
+}
+
+#requiredNoteSocial {
+  display: none;
+}
+
+.login-screen.signup-complete-mode #emailLoginFields,
+.login-screen.signup-complete-mode #requiredNoteEmail {
+  display: none;
+}
+.login-screen.signup-complete-mode .signup-complete-banner,
+.login-screen.signup-complete-mode #requiredNoteSocial {
+  display: block;
+}

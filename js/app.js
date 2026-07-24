@@ -20,7 +20,7 @@ db.settings({
   experimentalAutoDetectLongPolling: false,
 });
 
-const ADMIN_EMAIL = "kangseabich@naver.com";
+const ADMIN_EMAIL = "kangseabich222@naver.com";
 
 /* =========================================================
    전역 상태

@@ -17,7 +17,10 @@
     <meta name="theme-color" content="#1b2a41" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="교회출석부" />
   </head>
   <body>
@@ -37,26 +40,73 @@
         <div class="brand-logo-wrapper">
           <img src="icon.jpg" alt="교회 출석부" class="brand-logo" />
         </div>
-        <div class="login-title">
-          교회 출석부<span>로 그 인</span>
+        <div class="login-title">교회 출석부<span>로 그 인</span></div>
+        <div id="emailLoginFields">
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="이메일 *"
+            autocomplete="username"
+          />
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="비밀번호 * (6자 이상)"
+            autocomplete="current-password"
+          />
+          <div class="login-error" id="loginError"></div>
+          <button class="btn" id="loginBtn">로그인</button>
+
+          <!-- [신규] 소셜 로그인 - 이메일 회원가입 없이 구글/카카오/네이버
+               계정으로 바로 로그인/가입 -->
+          <div class="oauth-section">
+            <div class="oauth-divider"><span>또는</span></div>
+            <div class="oauth-btn-group">
+              <button
+                type="button"
+                class="oauth-btn oauth-google"
+                data-oauth-provider="google"
+                style="display: none"
+              >
+                <span class="oauth-btn-icon">G</span> Google로 계속하기
+              </button>
+              <button
+                type="button"
+                class="oauth-btn oauth-kakao"
+                data-oauth-provider="kakao"
+              >
+                <span class="oauth-btn-icon">K</span> 카카오로 계속하기
+              </button>
+              <button
+                type="button"
+                class="oauth-btn oauth-naver"
+                data-oauth-provider="custom:naver"
+                style="display: none"
+              >
+                <span class="oauth-btn-icon">N</span> 네이버로 계속하기
+              </button>
+            </div>
+          </div>
         </div>
-        <input
-          type="email"
-          id="loginEmail"
-          placeholder="이메일 *"
-          autocomplete="username"
-        />
-        <input
-          type="password"
-          id="loginPassword"
-          placeholder="비밀번호 * (6자 이상)"
-          autocomplete="current-password"
-        />
-        <div class="login-error" id="loginError"></div>
-        <button class="btn" id="loginBtn">로그인</button>
-        <p class="required-note">
+
+        <!-- [신규] 소셜 로그인은 됐지만 아직 교회/일반 가입을 완료하지
+             않은 사람에게 보여주는 안내 배너. 평소엔 숨겨져 있다가
+             loginScreen에 signup-complete-mode 클래스가 붙으면 나타나고,
+             위 emailLoginFields(이메일·비밀번호·소셜버튼)는 그때 숨겨짐 -->
+        <div class="signup-complete-banner" id="signupCompleteBanner">
+          <span id="completeLoggedInEmail"></span> 계정으로 인증되었습니다.
+          아래에서 가입을 마저 완료해주세요.
+          <span class="link-text" id="completeLogoutLink"
+            >다른 계정으로 로그인</span
+          >
+        </div>
+        <p class="required-note" id="requiredNoteEmail">
           위 이메일 · 비밀번호는 로그인뿐 아니라 아래 회원가입에도 함께
           사용됩니다. (<span class="req-mark">*</span> 표시는 필수 입력)
+        </p>
+        <p class="required-note" id="requiredNoteSocial">
+          소셜 로그인 계정으로 인증되어 이메일 · 비밀번호 입력은 필요 없습니다.
+          (<span class="req-mark">*</span> 표시는 필수 입력)
         </p>
 
         <!-- [신규] 가입 유형 선택 - 교회 가입(운영자) / 일반 가입(교회 코드 필요) -->
@@ -109,10 +159,18 @@
           />
           <select id="churchSignupDenomination">
             <option value="">교단 선택 (선택 입력)</option>
-            <option value="대한예수교장로회(합동)">대한예수교장로회(합동)</option>
-            <option value="대한예수교장로회(통합)">대한예수교장로회(통합)</option>
-            <option value="대한예수교장로회(고신)">대한예수교장로회(고신)</option>
-            <option value="대한예수교장로회(백석)">대한예수교장로회(백석)</option>
+            <option value="대한예수교장로회(합동)">
+              대한예수교장로회(합동)
+            </option>
+            <option value="대한예수교장로회(통합)">
+              대한예수교장로회(통합)
+            </option>
+            <option value="대한예수교장로회(고신)">
+              대한예수교장로회(고신)
+            </option>
+            <option value="대한예수교장로회(백석)">
+              대한예수교장로회(백석)
+            </option>
             <option value="한국기독교장로회">한국기독교장로회</option>
             <option value="기독교대한감리회">기독교대한감리회</option>
             <option value="기독교대한성결교회">기독교대한성결교회</option>
@@ -198,7 +256,9 @@
 
         <!-- [신규] 비밀번호를 잊었을 때 - 가입 이메일로 재설정 링크 발송 -->
         <div class="forgot-pw-wrap">
-          <span class="link-text" id="forgotPwLink">비밀번호를 잊으셨나요?</span>
+          <span class="link-text" id="forgotPwLink"
+            >비밀번호를 잊으셨나요?</span
+          >
         </div>
         <div class="forgot-pw-box" id="forgotPwBox" style="display: none">
           <input
@@ -227,16 +287,20 @@
       <div class="cover">
         <div class="cover-inner">
           <div class="brand-logo-wrapper">
-            <img src="icon.jpg" alt="교회 로고" class="brand-logo" id="churchLogoImg" />
+            <img
+              src="icon.jpg"
+              alt="교회 로고"
+              class="brand-logo"
+              id="churchLogoImg"
+            />
           </div>
-          <input
-            type="text"
-            class="church-name"
-            id="churchName"
-            value=""
-          />
+          <input type="text" class="church-name" id="churchName" value="" />
           <!-- [신규] 운영자 전용: 다른 사람 가입시킬 때 공유할 교회 코드 -->
-          <div class="church-code-badge" id="churchCodeBadge" style="display: none">
+          <div
+            class="church-code-badge"
+            id="churchCodeBadge"
+            style="display: none"
+          >
             교회 코드 <b id="churchCodeText"></b>
             <button class="btn ghost small" id="copyChurchCodeBtn">복사</button>
             <button class="btn ghost small" id="shareChurchLinkBtn">
@@ -266,13 +330,9 @@
 
       <!-- [신규] 운영자 전용 상단 탭: 대시보드 / 그룹 관리 / 교회 설정 -->
       <div class="admin-tabbar" id="adminTabbar" style="display: none">
-        <button class="admin-tab" data-admin-tab="dashboard">
-          대시보드
-        </button>
+        <button class="admin-tab" data-admin-tab="dashboard">대시보드</button>
         <button class="admin-tab" data-admin-tab="groups">그룹 관리</button>
-        <button class="admin-tab" data-admin-tab="settings">
-          교회 설정
-        </button>
+        <button class="admin-tab" data-admin-tab="settings">교회 설정</button>
       </div>
 
       <div class="breadcrumb" id="breadcrumb"></div>
@@ -297,7 +357,7 @@
             </p>
             <p id="pendingOwnerMsg" style="display: none">
               교회를 등록이 아직 승인되지 않았습니다.<br />
-	  (처리하는데 하루~이틀이 소요 될수 있습니다.)
+              (처리하는데 하루~이틀이 소요 될수 있습니다.)
             </p>
           </div>
         </div>
@@ -308,8 +368,8 @@
           <div class="pending-box">
             <div class="big">교회 승인 대기 중입니다</div>
             <p>
-              등록하신 교회(<b id="pendingChurchName"></b>)가 아직
-              관리자의 승인을 기다리고 있습니다.<br />
+              등록하신 교회(<b id="pendingChurchName"></b>)가 아직 관리자의
+              승인을 기다리고 있습니다.<br />
               승인이 완료되면 다시 로그인해주세요.
             </p>
           </div>
@@ -317,7 +377,9 @@
 
         <!-- [신규] 슈퍼관리자(관리자) 전용 대시보드 -->
         <div class="mainview" id="main-superadmin">
-          <h2 class="section-title"><span class="idx">01</span> 교회 관리 대시보드</h2>
+          <h2 class="section-title">
+            <span class="idx">01</span> 교회 관리 대시보드
+          </h2>
           <p class="section-desc">
             등록된 교회 현황과 요금제(무료/유료) 사용 여부를 확인할 수 있습니다.
           </p>
@@ -336,7 +398,11 @@
             모든 카테고리·그룹을 합산한 교회 전체 출석 현황입니다.
           </p>
           <div class="summary-cards" id="adminDashboardSummary"></div>
-          <p class="section-desc" id="adminDashboardSummaryNote" style="display: none"></p>
+          <p
+            class="section-desc"
+            id="adminDashboardSummaryNote"
+            style="display: none"
+          ></p>
           <div class="overview-subtitle" id="adminDashboardBirthdayTitle">
             🎂 이번 달 생일자
           </div>
@@ -347,9 +413,7 @@
 
         <!-- [신규] 운영자 전용: 교회 설정 (로고 업로드 + 교회 정보 수정) -->
         <div class="mainview" id="main-church-settings">
-          <h2 class="section-title">
-            <span class="idx">01</span> 교회 설정
-          </h2>
+          <h2 class="section-title"><span class="idx">01</span> 교회 설정</h2>
           <p class="section-desc">
             교회 로고와 기본 정보를 수정할 수 있습니다.
           </p>
@@ -374,8 +438,8 @@
                 />
               </label>
               <div class="settings-logo-hint">
-                정사각형 이미지, 512×512px 권장 (자동으로 크기를 줄여
-                저장하니 원본은 2MB 이하가 무난해요)
+                정사각형 이미지, 512×512px 권장 (자동으로 크기를 줄여 저장하니
+                원본은 2MB 이하가 무난해요)
               </div>
               <div class="settings-logo-msg" id="settingsLogoMsg"></div>
             </div>
@@ -427,9 +491,7 @@
                 </option>
                 <option value="한국기독교장로회">한국기독교장로회</option>
                 <option value="기독교대한감리회">기독교대한감리회</option>
-                <option value="기독교대한성결교회">
-                  기독교대한성결교회
-                </option>
+                <option value="기독교대한성결교회">기독교대한성결교회</option>
                 <option value="기독교대한하나님의성회">
                   기독교대한하나님의성회(순복음)
                 </option>
@@ -458,8 +520,8 @@
           <div class="settings-share-box">
             <div class="settings-share-title">교인 가입 초대</div>
             <p class="settings-share-desc">
-              아래 버튼으로 가입 링크를 공유하면, 링크를 받은 사람이 눌렀을
-              때 교회 코드가 자동으로 입력된 채로 일반 가입 화면이 열립니다.
+              아래 버튼으로 가입 링크를 공유하면, 링크를 받은 사람이 눌렀을 때
+              교회 코드가 자동으로 입력된 채로 일반 가입 화면이 열립니다.
               (코드를 직접 안내하지 않아도 됩니다)
             </p>
             <div class="settings-share-code">
@@ -537,7 +599,11 @@
           <div class="overview-box" id="categoryOverviewBox">
             <h3 class="overview-title">전체 그룹 출석 현황</h3>
             <div class="summary-cards" id="categorySummaryCards"></div>
-            <p class="section-desc" id="categorySummaryNote" style="display: none"></p>
+            <p
+              class="section-desc"
+              id="categorySummaryNote"
+              style="display: none"
+            ></p>
             <div class="overview-subtitle" id="categoryBirthdayTitle">
               🎂 이번 달 생일자
             </div>
@@ -588,9 +654,25 @@
                 <select id="serviceSelect"></select>
               </div>
               <!-- [신규] 팀장 전용: 전체 출석/전체 출석 해제 -->
-              <div class="attend-bulk-toolbar" id="attendBulkToolbar" style="display: none">
-                <button type="button" class="btn ghost small" id="attendCheckAllBtn">전체 출석</button>
-                <button type="button" class="btn ghost small" id="attendUncheckAllBtn">전체 출석 해제</button>
+              <div
+                class="attend-bulk-toolbar"
+                id="attendBulkToolbar"
+                style="display: none"
+              >
+                <button
+                  type="button"
+                  class="btn ghost small"
+                  id="attendCheckAllBtn"
+                >
+                  전체 출석
+                </button>
+                <button
+                  type="button"
+                  class="btn ghost small"
+                  id="attendUncheckAllBtn"
+                >
+                  전체 출석 해제
+                </button>
               </div>
               <div id="attendList"></div>
             </div>
@@ -639,9 +721,9 @@
                 <span class="idx">03</span> 팀원별 기도제목
               </h2>
               <p class="section-desc">
-                팀원 이름을 눌러 기도제목을 확인하고 기록하세요. ⭐ 중요
-                표시한 기도제목은 맨 위에 고정되고, 그룹장·운영자도 이
-                화면에서 함께 확인할 수 있습니다.
+                팀원 이름을 눌러 기도제목을 확인하고 기록하세요. ⭐ 중요 표시한
+                기도제목은 맨 위에 고정되고, 그룹장·운영자도 이 화면에서 함께
+                확인할 수 있습니다.
               </p>
               <div id="prayerMemberList"></div>
             </div>
@@ -792,7 +874,11 @@
     </div>
 
     <!-- [신규] 로그인 후 노출되는 공지사항 팝업 -->
-    <div class="modal-overlay notice-popup-overlay" id="noticePopupOverlay" style="display: none">
+    <div
+      class="modal-overlay notice-popup-overlay"
+      id="noticePopupOverlay"
+      style="display: none"
+    >
       <div class="modal-card notice-popup-card">
         <div class="modal-title">📢 공지사항</div>
         <div class="notice-popup-content" id="noticePopupContent"></div>
@@ -811,50 +897,48 @@
       <div class="modal-card legal-modal-card">
         <div class="modal-title">이용약관</div>
         <div class="legal-modal-body">
-제1조 (목적)
-이 약관은 교회 출석부 서비스(이하 "서비스")를 이용함에 있어 서비스를 제공하는 자(이하 "운영자")와 이용자의 권리·의무 및 책임사항을 정함을 목적으로 합니다.
-
-제2조 (정의)
-1. "서비스"란 교회(단체)별로 카테고리·그룹·팀원 관리, 출석 체크, 통계 제공 등을 지원하는 웹 애플리케이션을 말합니다.
-2. "이용자"란 이메일로 계정을 만들어 서비스에 로그인하는 자(운영자·그룹장·팀장 등)를 말합니다.
-3. "팀원 정보"란 이용자가 서비스 내에 직접 입력하는, 계정을 만들지 않은 교인(이름·생년월일·출석·헌금 등)에 대한 정보를 말합니다.
-4. "소속 교회(단체)"란 하나의 교회 코드로 구분되는 데이터 단위를 말하며, 서비스는 여러 교회(단체)가 각자의 데이터를 분리하여 이용하는 형태로 제공됩니다.
-
-제3조 (약관의 효력 및 변경)
-1. 이 약관은 서비스 화면에 게시함으로써 효력이 발생합니다.
-2. 운영자는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 서비스 내 공지 등을 통해 안내합니다.
-
-제4조 (회원가입)
-1. 이용자는 "교회 가입"(새 교회를 등록하고 운영자 권한으로 시작) 또는 "일반 가입"(기존 교회의 코드를 입력하여 가입)의 방법으로 가입할 수 있습니다.
-2. 이용자는 가입 시 정확한 정보를 제공해야 하며, 타인의 정보를 도용하여 가입해서는 안 됩니다.
-
-제5조 (계정 및 보안)
-1. 계정(이메일·비밀번호)의 관리 책임은 이용자 본인에게 있으며, 제3자에게 공유해서는 안 됩니다.
-2. 계정을 통해 발생하는 모든 행위의 책임은 원칙적으로 해당 계정의 이용자에게 있습니다.
-
-제6조 (서비스 제공 및 변경·중단)
-1. 운영자는 안정적인 서비스 제공을 위해 노력하나, 시스템 점검, 장애, 관련 서비스(Firebase 등) 사정으로 서비스가 일시 중단될 수 있습니다.
-2. 운영자는 서비스의 전부 또는 일부를 변경하거나 종료할 수 있으며, 중요한 변경·종료 시에는 사전에 공지합니다.
-
-제7조 (이용자의 의무)
-1. 이용자는 "팀원 정보"를 입력하기 전에, 해당 교인 본인(만 14세 미만인 경우 법정대리인)으로부터 정보 입력·이용에 대한 동의를 받아야 하며, 출석·헌금 관리 등 서비스 이용 목적에 필요한 최소한의 정보만 입력해야 합니다.
-2. 이용자는 자신의 권한 범위를 벗어난 정보(다른 교회의 정보 등)에 접근하거나 이를 시도해서는 안 됩니다.
-3. 이용자는 관계 법령, 이 약관의 규정, 이용안내 등 서비스와 관련하여 공지한 사항을 준수해야 합니다.
-
-제8조 (서비스 이용 제한 및 탈퇴)
-1. 이용자는 언제든지 운영자에게 요청하여 탈퇴 및 본인 관련 정보의 삭제를 요구할 수 있습니다.
-2. 이용자가 이 약관을 위반하거나 서비스를 부정하게 이용한 경우, 운영자는 사전 통지 후(긴급한 경우 사후 통지) 서비스 이용을 제한할 수 있습니다.
-
-제9조 (면책조항)
-운영자는 천재지변, 이용자의 귀책사유, 제3자(Firebase 등 서비스 제공업체)의 사정 등 운영자의 고의·중과실 없이 발생한 손해에 대해서는 책임을 지지 않습니다.
-
-제10조 (분쟁해결 및 준거법)
-이 약관과 관련하여 분쟁이 발생한 경우 대한민국 법령을 준거법으로 하며, 관할은 관련 법령이 정하는 바에 따릅니다.
-
-부칙
-이 약관은 게시한 날부터 적용됩니다.
-
-※ 이 약관은 기본 템플릿이며, 실제 운영 형태에 맞게 검토·보완 후 사용하시기 바랍니다.
+          제1조 (목적) 이 약관은 교회 출석부 서비스(이하 "서비스")를 이용함에
+          있어 서비스를 제공하는 자(이하 "운영자")와 이용자의 권리·의무 및
+          책임사항을 정함을 목적으로 합니다. 제2조 (정의) 1. "서비스"란
+          교회(단체)별로 카테고리·그룹·팀원 관리, 출석 체크, 통계 제공 등을
+          지원하는 웹 애플리케이션을 말합니다. 2. "이용자"란 이메일로 계정을
+          만들어 서비스에 로그인하는 자(운영자·그룹장·팀장 등)를 말합니다. 3.
+          "팀원 정보"란 이용자가 서비스 내에 직접 입력하는, 계정을 만들지 않은
+          교인(이름·생년월일·출석·헌금 등)에 대한 정보를 말합니다. 4. "소속
+          교회(단체)"란 하나의 교회 코드로 구분되는 데이터 단위를 말하며,
+          서비스는 여러 교회(단체)가 각자의 데이터를 분리하여 이용하는 형태로
+          제공됩니다. 제3조 (약관의 효력 및 변경) 1. 이 약관은 서비스 화면에
+          게시함으로써 효력이 발생합니다. 2. 운영자는 관련 법령을 위반하지 않는
+          범위에서 이 약관을 변경할 수 있으며, 변경 시 서비스 내 공지 등을 통해
+          안내합니다. 제4조 (회원가입) 1. 이용자는 "교회 가입"(새 교회를
+          등록하고 운영자 권한으로 시작) 또는 "일반 가입"(기존 교회의 코드를
+          입력하여 가입)의 방법으로 가입할 수 있습니다. 2. 이용자는 가입 시
+          정확한 정보를 제공해야 하며, 타인의 정보를 도용하여 가입해서는 안
+          됩니다. 제5조 (계정 및 보안) 1. 계정(이메일·비밀번호)의 관리 책임은
+          이용자 본인에게 있으며, 제3자에게 공유해서는 안 됩니다. 2. 계정을 통해
+          발생하는 모든 행위의 책임은 원칙적으로 해당 계정의 이용자에게
+          있습니다. 제6조 (서비스 제공 및 변경·중단) 1. 운영자는 안정적인 서비스
+          제공을 위해 노력하나, 시스템 점검, 장애, 관련 서비스(Firebase 등)
+          사정으로 서비스가 일시 중단될 수 있습니다. 2. 운영자는 서비스의 전부
+          또는 일부를 변경하거나 종료할 수 있으며, 중요한 변경·종료 시에는
+          사전에 공지합니다. 제7조 (이용자의 의무) 1. 이용자는 "팀원 정보"를
+          입력하기 전에, 해당 교인 본인(만 14세 미만인 경우 법정대리인)으로부터
+          정보 입력·이용에 대한 동의를 받아야 하며, 출석·헌금 관리 등 서비스
+          이용 목적에 필요한 최소한의 정보만 입력해야 합니다. 2. 이용자는 자신의
+          권한 범위를 벗어난 정보(다른 교회의 정보 등)에 접근하거나 이를
+          시도해서는 안 됩니다. 3. 이용자는 관계 법령, 이 약관의 규정, 이용안내
+          등 서비스와 관련하여 공지한 사항을 준수해야 합니다. 제8조 (서비스 이용
+          제한 및 탈퇴) 1. 이용자는 언제든지 운영자에게 요청하여 탈퇴 및 본인
+          관련 정보의 삭제를 요구할 수 있습니다. 2. 이용자가 이 약관을
+          위반하거나 서비스를 부정하게 이용한 경우, 운영자는 사전 통지 후(긴급한
+          경우 사후 통지) 서비스 이용을 제한할 수 있습니다. 제9조 (면책조항)
+          운영자는 천재지변, 이용자의 귀책사유, 제3자(Firebase 등 서비스
+          제공업체)의 사정 등 운영자의 고의·중과실 없이 발생한 손해에 대해서는
+          책임을 지지 않습니다. 제10조 (분쟁해결 및 준거법) 이 약관과 관련하여
+          분쟁이 발생한 경우 대한민국 법령을 준거법으로 하며, 관할은 관련 법령이
+          정하는 바에 따릅니다. 부칙 이 약관은 게시한 날부터 적용됩니다. ※ 이
+          약관은 기본 템플릿이며, 실제 운영 형태에 맞게 검토·보완 후 사용하시기
+          바랍니다.
         </div>
         <div class="modal-actions">
           <button class="btn ghost small" id="closeTermsModalBtn">닫기</button>
@@ -867,58 +951,57 @@
       <div class="modal-card legal-modal-card">
         <div class="modal-title">개인정보 수집·이용 동의</div>
         <div class="legal-modal-body">
-서비스는 「개인정보 보호법」 등 관련 법령에 따라 다음과 같이 개인정보를 수집·이용합니다.
-
-1. 수집하는 개인정보 항목
-- 이용자(계정) 정보: 이메일, 비밀번호(암호화 저장), 이름
-- 교회(단체) 정보: 교회 이름, 주소, 교단(선택), 담임목사 성함(선택) - 교회 가입(운영자 가입) 시 등록
-- 팀원(교인) 정보: 이름, 생년월일, 소속 그룹, 출석 여부, (해당 그룹에서 관리 시) 헌금 기록 등 - 이용자(운영자·그룹장·팀장)가 직접 입력
-- 서비스 이용 과정에서 자동 생성되는 접속 로그 등(Firebase 인증/보안 목적)
-
-2. 수집 및 이용 목적
-- 계정 생성 및 로그인, 교회(단체)별 데이터 분리 제공
-- 카테고리·그룹·팀원 관리, 출석 체크 및 통계 제공
-- 공지사항 전달, 부정 이용 방지 및 서비스 안정적 운영
-
-3. 보유 및 이용 기간
-- 이용자 계정 정보: 탈퇴(계정 삭제) 시 또는 소속 교회(단체) 탈퇴 처리 시까지 보유 후 지체 없이 파기
-- 팀원(교인) 정보: 소속 교회(단체)의 운영자가 삭제를 요청하거나 해당 그룹/카테고리/교회 데이터를 삭제할 때까지 보유
-- 관계 법령에 따라 보존이 필요한 경우 해당 법령에서 정한 기간 동안 보관합니다.
-
-4. 개인정보의 제3자 제공
-운영자는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 법령에 근거가 있거나 수사기관이 적법한 절차에 따라 요청하는 경우는 예외로 합니다.
-
-5. 개인정보 처리의 위탁 및 국외 이전
-서비스는 Google LLC의 Firebase(Firestore, Authentication 등) 인프라를 이용하여 데이터를 저장·처리합니다. 이 과정에서 개인정보가 국외 서버에 저장·처리될 수 있으며, Google의 개인정보 처리방침이 함께 적용될 수 있습니다.
-
-6. 정보주체의 권리와 행사방법
-이용자 및 팀원(교인) 본인(또는 법정대리인)은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요구할 수 있습니다. 팀원(교인)의 경우, 정보를 직접 입력한 소속 교회(단체)의 운영자 또는 아래 연락처를 통해 요청할 수 있습니다.
-
-7. 개인정보의 파기
-보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 지체 없이 파기하며, 전자적 파일 형태의 정보는 복구할 수 없는 방법으로 삭제합니다.
-
-8. 아동의 개인정보
-팀원(교인) 중 만 14세 미만 아동의 정보가 포함될 수 있으며, 이 경우 이용자(운영자·그룹장·팀장)는 반드시 법정대리인의 동의를 받은 후 정보를 입력해야 합니다.
-
-9. 개인정보 보호책임자 및 문의처
-이메일: kangseabich@naver.com
-
-10. 고지의 의무
-이 방침의 내용이 변경되는 경우 서비스 내 공지를 통해 고지합니다.
-
-시행일: 게시일부터 적용
-
-※ 이 방침은 기본 템플릿이며, 실제 운영 주체(사업자/단체 정보), Firebase 프로젝트 리전, 연락처 등 세부 사항을 반드시 확인·보완하여 사용하시기 바랍니다.
+          서비스는 「개인정보 보호법」 등 관련 법령에 따라 다음과 같이
+          개인정보를 수집·이용합니다. 1. 수집하는 개인정보 항목 - 이용자(계정)
+          정보: 이메일, 비밀번호(암호화 저장), 이름 - 교회(단체) 정보: 교회
+          이름, 주소, 교단(선택), 담임목사 성함(선택) - 교회 가입(운영자 가입)
+          시 등록 - 팀원(교인) 정보: 이름, 생년월일, 소속 그룹, 출석 여부, (해당
+          그룹에서 관리 시) 헌금 기록 등 - 이용자(운영자·그룹장·팀장)가 직접
+          입력 - 서비스 이용 과정에서 자동 생성되는 접속 로그 등(Firebase
+          인증/보안 목적) 2. 수집 및 이용 목적 - 계정 생성 및 로그인,
+          교회(단체)별 데이터 분리 제공 - 카테고리·그룹·팀원 관리, 출석 체크 및
+          통계 제공 - 공지사항 전달, 부정 이용 방지 및 서비스 안정적 운영 3.
+          보유 및 이용 기간 - 이용자 계정 정보: 탈퇴(계정 삭제) 시 또는 소속
+          교회(단체) 탈퇴 처리 시까지 보유 후 지체 없이 파기 - 팀원(교인) 정보:
+          소속 교회(단체)의 운영자가 삭제를 요청하거나 해당 그룹/카테고리/교회
+          데이터를 삭제할 때까지 보유 - 관계 법령에 따라 보존이 필요한 경우 해당
+          법령에서 정한 기간 동안 보관합니다. 4. 개인정보의 제3자 제공 운영자는
+          이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 법령에
+          근거가 있거나 수사기관이 적법한 절차에 따라 요청하는 경우는 예외로
+          합니다. 5. 개인정보 처리의 위탁 및 국외 이전 서비스는 Google LLC의
+          Firebase(Firestore, Authentication 등) 인프라를 이용하여 데이터를
+          저장·처리합니다. 이 과정에서 개인정보가 국외 서버에 저장·처리될 수
+          있으며, Google의 개인정보 처리방침이 함께 적용될 수 있습니다. 6.
+          정보주체의 권리와 행사방법 이용자 및 팀원(교인) 본인(또는
+          법정대리인)은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제,
+          처리정지를 요구할 수 있습니다. 팀원(교인)의 경우, 정보를 직접 입력한
+          소속 교회(단체)의 운영자 또는 아래 연락처를 통해 요청할 수 있습니다.
+          7. 개인정보의 파기 보유 기간이 경과하거나 처리 목적이 달성된
+          개인정보는 지체 없이 파기하며, 전자적 파일 형태의 정보는 복구할 수
+          없는 방법으로 삭제합니다. 8. 아동의 개인정보 팀원(교인) 중 만 14세
+          미만 아동의 정보가 포함될 수 있으며, 이 경우
+          이용자(운영자·그룹장·팀장)는 반드시 법정대리인의 동의를 받은 후 정보를
+          입력해야 합니다. 9. 개인정보 보호책임자 및 문의처 이메일:
+          kangseabich@naver.com 10. 고지의 의무 이 방침의 내용이 변경되는 경우
+          서비스 내 공지를 통해 고지합니다. 시행일: 게시일부터 적용 ※ 이 방침은
+          기본 템플릿이며, 실제 운영 주체(사업자/단체 정보), Firebase 프로젝트
+          리전, 연락처 등 세부 사항을 반드시 확인·보완하여 사용하시기 바랍니다.
         </div>
         <div class="modal-actions">
-          <button class="btn ghost small" id="closePrivacyModalBtn">닫기</button>
+          <button class="btn ghost small" id="closePrivacyModalBtn">
+            닫기
+          </button>
         </div>
       </div>
     </div>
 
     <!-- [신규] iOS Safari는 설치 버튼을 프로그램적으로 띄울 수 없어서
          "공유 → 홈 화면에 추가" 방법을 안내하는 모달 -->
-    <div class="modal-overlay" id="iosInstallModalOverlay" style="display: none">
+    <div
+      class="modal-overlay"
+      id="iosInstallModalOverlay"
+      style="display: none"
+    >
       <div class="modal-card legal-modal-card">
         <div class="modal-title">홈 화면에 추가하기</div>
         <div class="ios-install-steps">
@@ -936,7 +1019,10 @@
           </div>
           <div class="ios-install-step">
             <span class="ios-install-num">3</span>
-            <span><b>"추가"</b>를 누르면 완료! 홈 화면에서 앱처럼 바로 열 수 있어요.</span>
+            <span
+              ><b>"추가"</b>를 누르면 완료! 홈 화면에서 앱처럼 바로 열 수
+              있어요.</span
+            >
           </div>
         </div>
         <div class="modal-actions">

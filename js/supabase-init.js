@@ -16,7 +16,7 @@
 const SUPABASE_URL = "https://gjtavbhpqgertaqdxbbk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Yn3lJNQj2leqFfFL0-_LXQ_4Wxx2J-b";
 
-const ADMIN_EMAIL = "kangseabich@naver.com";
+const ADMIN_EMAIL = "kangseabich222@naver.com";
 
 /* [복구] 새 교회에 발급할 가입 코드 (대문자+숫자 6자리, 헷갈리는 0/O/1/I 제외)
    - Firebase/Supabase와 무관한 순수 앱 로직인데, firebase-init.js에서
@@ -365,6 +365,20 @@ const auth = {
 
   async signOut() {
     await sb.auth.signOut();
+  },
+
+  /* [신규] 구글/카카오/네이버 등 소셜 로그인. provider는 Supabase에 등록된
+     식별자를 그대로 넘김 - 기본 제공 provider는 'google'/'kakao'처럼
+     그대로, 대시보드에서 직접 등록한 Custom Provider는 'custom:naver'처럼
+     "custom:" 접두사를 붙여서 넘겨야 함. 성공하면 각 서비스 로그인
+     화면으로 브라우저가 이동했다가, 로그인을 마치면 redirectTo로 지정한
+     현재 페이지로 돌아오고 onAuthStateChanged가 그 이후 처리를 이어받음 */
+  async signInWithOAuth(provider) {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + window.location.pathname },
+    });
+    if (error) throw fsMapAuthError(error);
   },
 
   async sendPasswordResetEmail(email) {

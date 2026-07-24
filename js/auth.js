@@ -18,6 +18,28 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 });
 
 /* =========================================================
+   [신규] 소셜 로그인 (구글/카카오/네이버)
+   - 버튼을 누르면 각 서비스의 로그인 화면으로 이동했다가, 로그인/동의를
+     마치면 이 페이지로 다시 돌아옴. 그 다음은 이메일 로그인과 동일하게
+     auth.onAuthStateChanged가 감지해서 자동으로 라우팅함.
+   - 처음 로그인하는 사람(교회 가입/일반 가입을 아직 안 한 사람)은
+     routeAfterAuth에서 자동으로 "가입 완료" 화면으로 안내됨.
+   - 네이버는 Supabase가 기본 제공하는 로그인 목록에 없어서, Supabase
+     대시보드의 "Custom OAuth2 Provider" 기능으로 식별자를
+     custom:naver 로 등록해두어야 아래 코드가 동작함 (자세한 설정
+     방법은 별도로 안내) */
+document.querySelectorAll("[data-oauth-provider]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const provider = btn.dataset.oauthProvider;
+    try {
+      await auth.signInWithOAuth(provider);
+    } catch (e) {
+      alert("소셜 로그인 중 문제가 발생했습니다: " + e.message);
+    }
+  });
+});
+
+/* =========================================================
    [수정] 회원가입 - 이메일/비밀번호는 상단(loginEmail/loginPassword)의
    값을 공용으로 쓰고, "교회 가입" / "일반 가입" 중 하나를 선택해
    이름(+교회 이름 또는 교회 코드)만 추가로 입력받는 구조.
@@ -233,8 +255,17 @@ document
     if (!checkConsents("churchConsentTerms", "churchConsentPrivacy", errEl)) {
       return;
     }
-    const cred = validateEmailPw(errEl);
-    if (!cred) return;
+    /* [신규] 소셜 로그인(구글/카카오/네이버)으로 이미 인증된 상태라면
+       이메일·비밀번호 입력칸 자체가 화면에 없으므로 검증을 건너뛰고
+       현재 로그인된 계정 이메일을 그대로 씀. 이메일 로그인으로 들어온
+       경우엔 기존과 동일하게 이메일·비밀번호를 입력받음 */
+    const alreadyAuthed = !!auth.currentUser;
+    let cred = null;
+    if (!alreadyAuthed) {
+      cred = validateEmailPw(errEl);
+      if (!cred) return;
+    }
+    const email = alreadyAuthed ? auth.currentUser.email : cred.email;
     const btn = document.getElementById("churchSignupBtn");
     btn.disabled = true;
     btn.textContent = "확인 중...";
@@ -288,45 +319,48 @@ document
          함께 표시함 */
       stage = "계정 생성";
       try {
-        try {
-          await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-        } catch (eCreate) {
-          /* [신규] "고아 계정" 복구: 이전 가입 시도가 계정 생성 이후
-             단계(교회/역할 문서 생성)에서 실패해, Auth 계정만 만들어진 채
-             churchId가 없는 상태로 남아있는 경우가 있었음. 이 경우 같은
-             이메일로 "교회 가입"을 다시 시도하면 무조건 "이미 가입된
-             이메일"로 막혀서, 그 계정은 영원히 소속 교회 없이 로그인만
-             되는 상태에 갇혀버렸음. 그래서 "이미 가입된 이메일" 에러가
-             나면 곧바로 포기하지 않고, 입력한 비밀번호로 로그인을 시도해
-             본 뒤 - 로그인이 되고 + 아직 churchId가 없는 진짜 고아
-             계정이 맞을 때만 그 계정을 그대로 이어받아 가입을 완료시킴 */
-          if (eCreate.code !== "auth/email-already-in-use") throw eCreate;
-          let recovered;
+        if (!alreadyAuthed) {
           try {
-            recovered = await auth.signInWithEmailAndPassword(
-              cred.email,
-              cred.pw,
-            );
-          } catch (eSignIn) {
-            throw eCreate; /* 비밀번호가 다르면 원래대로 "이미 가입된 이메일" 표시 */
+            await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
+          } catch (eCreate) {
+            /* [신규] "고아 계정" 복구: 이전 가입 시도가 계정 생성 이후
+               단계(교회/역할 문서 생성)에서 실패해, Auth 계정만 만들어진 채
+               churchId가 없는 상태로 남아있는 경우가 있었음. 이 경우 같은
+               이메일로 "교회 가입"을 다시 시도하면 무조건 "이미 가입된
+               이메일"로 막혀서, 그 계정은 영원히 소속 교회 없이 로그인만
+               되는 상태에 갇혀버렸음. 그래서 "이미 가입된 이메일" 에러가
+               나면 곧바로 포기하지 않고, 입력한 비밀번호로 로그인을 시도해
+               본 뒤 - 로그인이 되고 + 아직 churchId가 없는 진짜 고아
+               계정이 맞을 때만 그 계정을 그대로 이어받아 가입을 완료시킴 */
+            if (eCreate.code !== "auth/email-already-in-use") throw eCreate;
+            let recovered;
+            try {
+              recovered = await auth.signInWithEmailAndPassword(
+                cred.email,
+                cred.pw,
+              );
+            } catch (eSignIn) {
+              throw eCreate; /* 비밀번호가 다르면 원래대로 "이미 가입된 이메일" 표시 */
+            }
+            const existingDoc = await db
+              .collection("users")
+              .doc(cred.email)
+              .get();
+            if (existingDoc.exists && existingDoc.data().churchId) {
+              /* 이미 다른 교회에 정상 소속된 계정 - 진짜 중복 가입이므로 중단 */
+              await auth.signOut();
+              throw eCreate;
+            }
+            /* 고아 계정 확인됨 - 새로 만들지 않고 이 계정으로 아래 가입
+               절차(교회/역할 문서 생성)를 이어서 진행함 */
           }
-          const existingDoc = await db
-            .collection("users")
-            .doc(cred.email)
-            .get();
-          if (existingDoc.exists && existingDoc.data().churchId) {
-            /* 이미 다른 교회에 정상 소속된 계정 - 진짜 중복 가입이므로 중단 */
-            await auth.signOut();
-            throw eCreate;
-          }
-          /* 고아 계정 확인됨 - 새로 만들지 않고 이 계정으로 아래 가입
-             절차(교회/역할 문서 생성)를 이어서 진행함 */
         }
         /* [수정] 계정 생성 직후 곧바로 Firestore 쓰기를 보내면, 새로
            발급된 로그인 토큰이 아직 Firestore 클라이언트에 반영되기 전이라
            "로그인 안 한 사용자"로 취급되어 permission-denied가 나는 경우가
            있음 - 토큰을 강제로 새로 받아온 뒤 다음 단계로 진행해 이 레이스
-           컨디션을 없앰 */
+           컨디션을 없앰. 이미 소셜 로그인으로 인증된 경우엔 새로 발급된
+           토큰이 없으므로 이 단계가 실질적으로 아무 일도 하지 않고 지나감 */
         await auth.currentUser.getIdToken(true);
 
         stage = "교회 문서 생성";
@@ -341,7 +375,7 @@ document
           code: generateChurchCode(),
           status: "approved",
           plan: "free",
-          ownerEmail: cred.email,
+          ownerEmail: email,
           createdAt: Date.now(),
           /* [신규] 주소/교단/담임목사 - 동명 교회 구분 및 기본 정보 */
           address: addressEl.value.trim(),
@@ -361,18 +395,22 @@ document
            떨어지는 문제가 있었음(권한없음처럼 보임). 이제 이 둘은 batch로
            묶어 항상 같이 성공하거나 같이 실패하도록 함(부분 실패로 인한
            반쪽짜리 상태 자체를 없앰) */
-        const userRef = db.collection("users").doc(cred.email);
-        const rolesRef = db.collection("roles").doc(cred.email);
+        const userRef = db.collection("users").doc(email);
+        const rolesRef = db.collection("roles").doc(email);
         const batch = db.batch();
-        batch.set(userRef, {
-          email: cred.email,
-          name: nameEl.value.trim(),
-          createdAt: Date.now(),
-          churchId: churchRef.id,
-          /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
-          agreedTermsAt: Date.now(),
-          agreedPrivacyAt: Date.now(),
-        });
+        batch.set(
+          userRef,
+          {
+            email,
+            name: nameEl.value.trim(),
+            createdAt: Date.now(),
+            churchId: churchRef.id,
+            /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
+            agreedTermsAt: Date.now(),
+            agreedPrivacyAt: Date.now(),
+          },
+          { merge: true },
+        );
         /* [수정] 이전에는 기본 카테고리를 자동 생성하고 그 카테고리의
            운영자(operator) 컨텍스트까지 함께 부여했는데, roles 문서에 컨텍스트가
            2개(admin + operator)가 되면서 "역할이 여러 개일 때 먼저 보여주는
@@ -421,8 +459,19 @@ document
     if (!checkConsents("regularConsentTerms", "regularConsentPrivacy", errEl)) {
       return;
     }
-    const cred = validateEmailPw(errEl);
-    if (!cred) return;
+    if (!checkConsents("regularConsentTerms", "regularConsentPrivacy", errEl)) {
+      return;
+    }
+    /* [신규] 소셜 로그인으로 이미 인증된 상태면 이메일·비밀번호 검증을
+       건너뛰고 현재 로그인된 계정을 그대로 씀 (자세한 설명은
+       churchSignupBtn 핸들러의 동일 로직 주석 참고) */
+    const alreadyAuthed = !!auth.currentUser;
+    let cred = null;
+    if (!alreadyAuthed) {
+      cred = validateEmailPw(errEl);
+      if (!cred) return;
+    }
+    const email = alreadyAuthed ? auth.currentUser.email : cred.email;
     const btn = document.getElementById("regularSignupBtn");
     btn.disabled = true;
     btn.textContent = "확인 중...";
@@ -448,24 +497,26 @@ document
       btn.textContent = "가입 처리 중...";
       suppressAutoRoute = true;
       try {
-        try {
-          await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
-        } catch (eCreate) {
-          /* [신규] 교회 가입과 동일한 고아 계정 복구 처리 - 자세한 설명은
-             churchSignupBtn 핸들러의 동일 로직 주석 참고 */
-          if (eCreate.code !== "auth/email-already-in-use") throw eCreate;
+        if (!alreadyAuthed) {
           try {
-            await auth.signInWithEmailAndPassword(cred.email, cred.pw);
-          } catch (eSignIn) {
-            throw eCreate;
-          }
-          const existingDoc = await db
-            .collection("users")
-            .doc(cred.email)
-            .get();
-          if (existingDoc.exists && existingDoc.data().churchId) {
-            await auth.signOut();
-            throw eCreate;
+            await auth.createUserWithEmailAndPassword(cred.email, cred.pw);
+          } catch (eCreate) {
+            /* [신규] 교회 가입과 동일한 고아 계정 복구 처리 - 자세한 설명은
+               churchSignupBtn 핸들러의 동일 로직 주석 참고 */
+            if (eCreate.code !== "auth/email-already-in-use") throw eCreate;
+            try {
+              await auth.signInWithEmailAndPassword(cred.email, cred.pw);
+            } catch (eSignIn) {
+              throw eCreate;
+            }
+            const existingDoc = await db
+              .collection("users")
+              .doc(cred.email)
+              .get();
+            if (existingDoc.exists && existingDoc.data().churchId) {
+              await auth.signOut();
+              throw eCreate;
+            }
           }
         }
         /* [수정] 계정 생성 직후 토큰이 아직 반영되기 전에 쓰기가 나가
@@ -479,18 +530,22 @@ document
            본인 문서를 만드는 경우"만 허용하므로 남이 만들려는 이 create는
            항상 거부됨(권한 없음 오류). 교회 가입과 동일하게 users 문서와
            함께 role:"none" roles 문서를 batch로 같이 만들어 이 구멍을 없앰 */
-        const userRef = db.collection("users").doc(cred.email);
-        const rolesRef = db.collection("roles").doc(cred.email);
+        const userRef = db.collection("users").doc(email);
+        const rolesRef = db.collection("roles").doc(email);
         const batch = db.batch();
-        batch.set(userRef, {
-          email: cred.email,
-          name: nameEl.value.trim(),
-          createdAt: Date.now(),
-          churchId: churchDoc.id,
-          /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
-          agreedTermsAt: Date.now(),
-          agreedPrivacyAt: Date.now(),
-        });
+        batch.set(
+          userRef,
+          {
+            email,
+            name: nameEl.value.trim(),
+            createdAt: Date.now(),
+            churchId: churchDoc.id,
+            /* [신규] 회원가입 시 이용약관/개인정보 동의 여부·시각 기록 (분쟁 대비 증빙) */
+            agreedTermsAt: Date.now(),
+            agreedPrivacyAt: Date.now(),
+          },
+          { merge: true },
+        );
         batch.set(rolesRef, {
           contexts: [{ role: "none", churchId: churchDoc.id }],
           churchIds: [churchDoc.id],
@@ -623,9 +678,32 @@ auth.onAuthStateChanged(async (user) => {
     activeContextIndex = 0;
     currentChurchId = null;
     currentChurchData = null;
+    document.getElementById("loginScreen").classList.remove(
+      "signup-complete-mode",
+    );
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appScreen").style.display = "none";
   }
+});
+
+/* [신규] 소셜 로그인 등으로 인증은 됐지만 아직 가입(교회/일반)을 완료하지
+   않은 계정을 위한 화면. 앱 화면 대신 로그인 화면을 다시 보여주되,
+   이메일·비밀번호 입력칸과 로그인 버튼은 숨기고(이미 로그인 됐으므로)
+   가입 폼(교회 가입/일반 가입)만 그대로 이용할 수 있게 함. 이 폼들은
+   auth.currentUser가 있으면 계정을 새로 만들지 않고 그 계정으로 바로
+   교회/역할 문서만 작성하도록 이미 처리돼 있음(churchSignupBtn/
+   regularSignupBtn 핸들러 참고) */
+function showSignupCompletionUI() {
+  document.getElementById("appScreen").style.display = "none";
+  const loginScreenEl = document.getElementById("loginScreen");
+  loginScreenEl.style.display = "flex";
+  loginScreenEl.classList.add("signup-complete-mode");
+  document.getElementById("completeLoggedInEmail").textContent =
+    currentUser.email;
+}
+
+document.getElementById("completeLogoutLink").addEventListener("click", () => {
+  auth.signOut();
 });
 
 /* [신규] 로그인 상태 진입 시 화면 라우팅.
@@ -654,6 +732,18 @@ async function routeAfterAuth(user) {
     document.getElementById("planToggleBtn").style.display = "none";
     renderRoleSwitcher();
     await enterSuperadminDashboard();
+    return;
+  }
+
+  /* [신규] 소셜 로그인(구글/카카오/네이버) 등으로 로그인은 됐지만 아직
+     "교회 가입"도 "일반 가입"도 전혀 완료하지 않은 계정(users 문서에
+     churchId 자체가 없음). 예전에는 이런 계정을 그냥 "권한 승인 대기"
+     화면으로 보내버렸는데, 이 사람은 애초에 아직 가입 자체를 마치지
+     않은 것뿐이라 그 안내가 맞지 않았음. 그래서 로그인 화면의 가입
+     폼(교회 가입/일반 가입)을 이메일·비밀번호 입력 없이 그대로 다시
+     보여줘서 바로 가입을 마칠 수 있게 함 */
+  if (!currentChurchId) {
+    showSignupCompletionUI();
     return;
   }
   // if (currentRole === "church_pending") {
